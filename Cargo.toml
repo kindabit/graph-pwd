@@ -1,0 +1,12 @@
+[package]
+name = "graph-pwd"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+iced = "0.13.1"
+serde = { version = "1.0.219", features = [ "derive" ] }
+serde_yml = "0.0.12"
+chrono = "0.4.40"
+log = "0.4.26"
+fern = { version = "0.7.1", features = [ "date-based" ] }
