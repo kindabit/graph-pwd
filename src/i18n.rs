@@ -53,10 +53,10 @@ impl I18n {
     })
   }
 
-  pub fn translate<'a>(&'a self, key: &'a str) -> &'a str {
+  pub fn translate<'a>(&'a self, key: &'a str) -> String {
     match self.translations.get(key) {
-      Some(text) => text,
-      None => key,
+      Some(text) => text.clone(),
+      None => key.to_string(),
     }
   }
 
