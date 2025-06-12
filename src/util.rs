@@ -1,9 +1,15 @@
+mod byte_slice_reader;
+mod byte_vec_writer;
+
 use std::error::Error;
 
 use iced::{widget::{center, container, mouse_area, opaque, stack}, Color, Element};
 use native_dialog::DialogBuilder;
 
 use crate::app_error::AppError;
+
+pub use byte_slice_reader::ByteSliceReader;
+pub use byte_vec_writer::ByteVecWriter;
 
 pub async fn select_new_file() -> Result<Option<String>, Box<dyn Error + Send>> {
   let path = match DialogBuilder::file()

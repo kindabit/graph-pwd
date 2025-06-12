@@ -1,10 +1,16 @@
-use std::{error::Error, fs};
+pub mod account;
 
+use std::{error::Error, fs};
+use account::Account;
+
+use crate::util::{ByteSliceReader, ByteVecWriter};
+
+#[derive(Debug)]
 pub struct Database {
 
   path: String,
 
-  dummy: Vec<i32>,
+  accounts: Vec<Option<Account>>
 
 }
 
@@ -13,22 +19,72 @@ impl Database {
   pub fn new(path: String) -> Self {
     Self {
       path,
-      dummy: vec![2, 3, 5, 7, 11, 13, 17],
+      accounts: Vec::new(),
     }
   }
 
+  pub fn path(&self) -> &str {
+    &self.path
+  }
+
+  pub fn accounts(&self) -> &Vec<Option<Account>> {
+    &self.accounts
+  }
+
+  pub fn add_account(&mut self, name: String, parent_account: Option<usize>) {
+    let account = Account::new(self.accounts.len(), name, parent_account);
+    self.accounts.push(Some(account));
+  }
+
+  pub fn remove_account(&mut self, account_id: usize) {
+    self.accounts[account_id] = None;
+  }
+
   pub fn load(path: String) -> Result<Self, Box<dyn Error>> {
-    let data = fs::read_to_string(&path)?;
-    let dummy = data.split(' ').into_iter().map(|s| i32::from_str_radix(s, 10).unwrap()).collect();
+    let data = fs::read(&path)?;
+    let mut reader = ByteSliceReader::new(&data);
+
+    let num_accounts = reader.read_usize()?;
+    let mut accounts = Vec::with_capacity(num_accounts);
+
+    for _ in 0..num_accounts {
+      let exist = reader.read_u8()?;
+      if exist == 1 {
+        let account = Account::from_reader(&mut reader)?;
+        accounts.push(Some(account));
+      }
+      else {
+        accounts.push(None);
+      }
+    }
+
     Ok(Self {
       path,
-      dummy,
+      accounts,
     })
   }
 
   pub fn save(&self) -> Result<(), Box<dyn Error>> {
-    let data = self.dummy.iter().map(|i| i.to_string()).collect::<Vec<String>>().join(" ");
+    let mut data = Vec::new();
+    let mut writer = ByteVecWriter::new(&mut data);
+
+    let len = self.accounts.len();
+    writer.write_usize(len);
+
+    self.accounts.iter().for_each(|account| {
+      match account {
+        Some(account) => {
+          writer.write_u8(1_u8);
+          account.write(&mut writer);
+        }
+        None => {
+          writer.write_u8(0_u8);
+        }
+      }
+    });
+
     fs::write(&self.path, data)?;
+
     Ok(())
   }
 
