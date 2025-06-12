@@ -1,6 +1,9 @@
 use iced::{widget::{button, row, text, toggler}, Element};
+use log::warn;
 
 use crate::i18n::I18n;
+
+const MODULE_PATH: &str = module_path!();
 
 pub struct Header {
   tree_mode: bool,
@@ -13,6 +16,7 @@ pub enum Message {
   OnLoadButtonClicked,
   OnSaveButtonClicked,
   OnSaveAsButtonClicked,
+  OnDebugPrintDatabaseButtonClicked,
 }
 
 impl Header {
@@ -40,6 +44,10 @@ impl Header {
       Message::OnSaveAsButtonClicked => {
         Some(crate::Message::SaveAsDatabase)
       }
+      Message::OnDebugPrintDatabaseButtonClicked => {
+        warn!("Event {MODULE_PATH}::Message::OnDebugPrintDatabaseButtonClicked should be intercepted");
+        None
+      }
     }
   }
 
@@ -61,6 +69,9 @@ impl Header {
     let save_as_button = button(text(i18n.translate("header.save_as_button")))
       .on_press(Message::OnSaveAsButtonClicked);
 
+    // let debug_print_database_button = button(text("DBG PRT DB"))
+    //   .on_press(Message::OnDebugPrintDatabaseButtonClicked);
+
     row![
       tree_mode_label,
       tree_mode_toggler,
@@ -68,6 +79,7 @@ impl Header {
       load_button,
       save_button,
       save_as_button,
+      // debug_print_database_button,
     ].into()
   }
 }

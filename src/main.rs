@@ -14,7 +14,7 @@ use config::Config;
 use header::Header;
 use i18n::I18n;
 use iced::{widget::column, Element, Font, Length, Task};
-use log::debug;
+use log::{debug, info};
 use logging::setup_logging;
 
 use crate::{confirm_dialog::ConfirmDialog, database::Database, popup_dialog::{PopupDialog, PopupDialogType}, util::modal};
@@ -107,9 +107,18 @@ impl RootWidget {
   pub fn update(&mut self, message: Message) -> Task<Message> {
     match message {
       Message::HeaderMessage(msg) => {
-        match self.header.update(msg) {
-          Some(msg) => self.update(msg),
-          None => Task::none(),
+        match msg {
+          header::Message::OnDebugPrintDatabaseButtonClicked => {
+            let db = &self.database;
+            info!("{db:?}");
+            Task::none()
+          }
+          other => {
+            match self.header.update(other) {
+              Some(msg) => self.update(msg),
+              None => Task::none(),
+            }
+          }
         }
       }
 
