@@ -1,1 +1,0 @@
-- update() should return self::Message, not crate::Message

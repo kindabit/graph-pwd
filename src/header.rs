@@ -26,27 +26,25 @@ impl Header {
     }
   }
 
-  pub fn update(&mut self, message: Message) -> Option<crate::Message> {
+  pub fn update(&mut self, message: Message) {
     match message {
       Message::OnTreeModeToggled(toggled) => {
         self.tree_mode = toggled;
-        None
       }
       Message::OnNewButtonClicked => {
-        Some(crate::Message::NewDatabase)
+        warn!("Event {MODULE_PATH}::Message::OnNewButtonClicked should be intercepted");
       }
       Message::OnLoadButtonClicked => {
-        Some(crate::Message::LoadDatabase)
+        warn!("Event {MODULE_PATH}::Message::OnLoadButtonClicked should be intercepted");
       }
       Message::OnSaveButtonClicked => {
-        Some(crate::Message::SaveDatabase)
+        warn!("Event {MODULE_PATH}::Message::OnSaveButtonClicked should be intercepted");
       }
       Message::OnSaveAsButtonClicked => {
-        Some(crate::Message::SaveAsDatabase)
+        warn!("Event {MODULE_PATH}::Message::OnSaveAsButtonClicked should be intercepted");
       }
       Message::OnDebugPrintDatabaseButtonClicked => {
         warn!("Event {MODULE_PATH}::Message::OnDebugPrintDatabaseButtonClicked should be intercepted");
-        None
       }
     }
   }

@@ -113,11 +113,21 @@ impl RootWidget {
             info!("{db:?}");
             Task::none()
           }
+          header::Message::OnNewButtonClicked => {
+            self.update(Message::NewDatabase)
+          }
+          header::Message::OnLoadButtonClicked => {
+            self.update(Message::LoadDatabase)
+          }
+          header::Message::OnSaveButtonClicked => {
+            self.update(Message::SaveDatabase)
+          }
+          header::Message::OnSaveAsButtonClicked => {
+            self.update(Message::SaveAsDatabase)
+          }
           other => {
-            match self.header.update(other) {
-              Some(msg) => self.update(msg),
-              None => Task::none(),
-            }
+            self.header.update(other);
+            Task::none()
           }
         }
       }
