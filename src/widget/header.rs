@@ -1,12 +1,11 @@
 use iced::{widget::{button, row, text, toggler}, Alignment, Element, Length};
 use log::warn;
 
-use crate::i18n::I18n;
+use crate::{global_state::GlobalState, i18n::I18n};
 
 const MODULE_PATH: &str = module_path!();
 
 pub struct Header {
-  tree_mode: bool,
 }
 
 #[derive(Clone, Debug)]
@@ -22,14 +21,13 @@ pub enum Message {
 impl Header {
   pub fn new() -> Self {
     Self {
-      tree_mode: false,
     }
   }
 
   pub fn update(&mut self, message: Message) {
     match message {
-      Message::OnTreeModeToggled(toggled) => {
-        self.tree_mode = toggled;
+      Message::OnTreeModeToggled(_toggled) => {
+        warn!("Event {MODULE_PATH}::Message::OnTreeModeToggled should be intercepted");
       }
       Message::OnNewButtonClicked => {
         warn!("Event {MODULE_PATH}::Message::OnNewButtonClicked should be intercepted");
@@ -49,10 +47,10 @@ impl Header {
     }
   }
 
-  pub fn view(&self, i18n: &I18n) -> Element<Message> {
+  pub fn view(&self, i18n: &I18n, global_state: &GlobalState) -> Element<Message> {
     let tree_mode_label = text(i18n.translate("header.tree_mode_label"));
 
-    let tree_mode_toggler = toggler(self.tree_mode)
+    let tree_mode_toggler = toggler(global_state.tree_mode())
       .on_toggle(|toggled| Message::OnTreeModeToggled(toggled));
 
     let new_button = button(text(i18n.translate("header.new_button")))

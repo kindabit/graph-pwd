@@ -3,6 +3,7 @@ mod app_error;
 mod logging;
 mod config;
 mod i18n;
+mod global_state;
 mod database;
 mod widget;
 
@@ -14,7 +15,7 @@ use iced::{widget::column, Element, Font, Length, Task};
 use log::{debug, info};
 use logging::setup_logging;
 
-use crate::{database::Database, util::modal};
+use crate::{database::Database, global_state::GlobalState, util::modal};
 
 pub fn main() -> Result<(), Box<dyn Error>> {
   setup_logging()?;
@@ -73,6 +74,8 @@ struct RootWidget {
 
   i18n: I18n,
 
+  global_state: GlobalState,
+
   database: Option<Database>,
 
   popup_dialogs: Vec<widget::PopupDialog>,
@@ -95,6 +98,8 @@ impl RootWidget {
 
       i18n,
 
+      global_state: GlobalState::new(),
+
       database: None,
 
       popup_dialogs: Vec::new(),
@@ -113,9 +118,8 @@ impl RootWidget {
     match message {
       Message::HeaderMessage(msg) => {
         match msg {
-          widget::HeaderMessage::OnDebugPrintDatabaseButtonClicked => {
-            let db = &self.database;
-            info!("{db:?}");
+          widget::HeaderMessage::OnTreeModeToggled(toggled) => {
+            self.global_state.set_tree_mode(toggled);
             Task::none()
           }
           widget::HeaderMessage::OnNewButtonClicked => {
@@ -129,6 +133,11 @@ impl RootWidget {
           }
           widget::HeaderMessage::OnSaveAsButtonClicked => {
             self.update(Message::SaveAsDatabase)
+          }
+          widget::HeaderMessage::OnDebugPrintDatabaseButtonClicked => {
+            let db = &self.database;
+            info!("{db:?}");
+            Task::none()
           }
           other => {
             self.header.update(other);
@@ -375,8 +384,8 @@ impl RootWidget {
 
   pub fn view(&self) -> Element<Message> {
     let content = column![
-      self.header.view(&self.i18n).map(Message::HeaderMessage),
-      self.working_area.view(&self.i18n).map(Message::WorkingAreaMessage),
+      self.header.view(&self.i18n, &self.global_state).map(Message::HeaderMessage),
+      self.working_area.view(&self.i18n, &self.global_state).map(Message::WorkingAreaMessage),
       self.status_bar.view(&self.i18n, self.database.as_ref()).map(Message::StatusBarMessage),
     ]
     .width(Length::Fill)

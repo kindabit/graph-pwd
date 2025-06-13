@@ -1,7 +1,6 @@
-use iced::{widget::{button, container, row, text, toggler}, Element, Length};
-use log::warn;
+use iced::{widget::{container, text}, Element, Length};
 
-use crate::i18n::I18n;
+use crate::{global_state::GlobalState, i18n::I18n};
 
 pub struct WorkingArea {
 }
@@ -21,8 +20,9 @@ impl WorkingArea {
     }
   }
 
-  pub fn view(&self, i18n: &I18n) -> Element<Message> {
-    container("working area")
+  pub fn view(&self, i18n: &I18n, global_state: &GlobalState) -> Element<Message> {
+    let tree_mode = global_state.tree_mode();
+    container(text(format!("working area, tree mode: {tree_mode}")))
       .width(Length::Fill)
       .height(Length::Fill)
       .into()

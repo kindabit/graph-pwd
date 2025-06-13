@@ -1,5 +1,4 @@
-use iced::{widget::{button, container, row, text, toggler}, Alignment, Element, Length};
-use log::warn;
+use iced::{widget::{row, text}, Alignment, Element, Length};
 
 use crate::{database::Database, i18n::I18n};
 
