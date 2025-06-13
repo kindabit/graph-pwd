@@ -4,20 +4,17 @@ mod logging;
 mod config;
 mod i18n;
 mod database;
-mod popup_dialog;
-mod confirm_dialog;
-mod header;
+mod widget;
 
 use std::error::Error;
 
 use config::Config;
-use header::Header;
 use i18n::I18n;
 use iced::{widget::column, Element, Font, Length, Task};
 use log::{debug, info};
 use logging::setup_logging;
 
-use crate::{confirm_dialog::ConfirmDialog, database::Database, popup_dialog::{PopupDialog, PopupDialogType}, util::modal};
+use crate::{database::Database, util::modal};
 
 pub fn main() -> Result<(), Box<dyn Error>> {
   setup_logging()?;
@@ -41,11 +38,11 @@ pub fn main() -> Result<(), Box<dyn Error>> {
 #[derive(Clone, Debug)]
 pub enum Message {
 
-  HeaderMessage(header::Message),
+  HeaderMessage(widget::HeaderMessage),
 
-  PopupDialogMessage(popup_dialog::Message),
+  PopupDialogMessage(widget::PopupDialogMessage),
 
-  ConfirmDialogMessage(confirm_dialog::Message),
+  ConfirmDialogMessage(widget::ConfirmDialogMessage),
 
   NewDatabase,
   NewDatabaseConfirmed,
@@ -78,11 +75,11 @@ struct RootWidget {
 
   database: Option<Database>,
 
-  popup_dialogs: Vec<PopupDialog>,
+  popup_dialogs: Vec<widget::PopupDialog>,
 
-  confirm_dialogs: Vec<ConfirmDialog>,
+  confirm_dialogs: Vec<widget::ConfirmDialog>,
 
-  header: Header,
+  header: widget::Header,
 
 }
 
@@ -100,7 +97,7 @@ impl RootWidget {
 
       confirm_dialogs: Vec::new(),
 
-      header: Header::new(),
+      header: widget::Header::new(),
     }
   }
 
@@ -108,21 +105,21 @@ impl RootWidget {
     match message {
       Message::HeaderMessage(msg) => {
         match msg {
-          header::Message::OnDebugPrintDatabaseButtonClicked => {
+          widget::HeaderMessage::OnDebugPrintDatabaseButtonClicked => {
             let db = &self.database;
             info!("{db:?}");
             Task::none()
           }
-          header::Message::OnNewButtonClicked => {
+          widget::HeaderMessage::OnNewButtonClicked => {
             self.update(Message::NewDatabase)
           }
-          header::Message::OnLoadButtonClicked => {
+          widget::HeaderMessage::OnLoadButtonClicked => {
             self.update(Message::LoadDatabase)
           }
-          header::Message::OnSaveButtonClicked => {
+          widget::HeaderMessage::OnSaveButtonClicked => {
             self.update(Message::SaveDatabase)
           }
-          header::Message::OnSaveAsButtonClicked => {
+          widget::HeaderMessage::OnSaveAsButtonClicked => {
             self.update(Message::SaveAsDatabase)
           }
           other => {
@@ -134,7 +131,7 @@ impl RootWidget {
 
       Message::PopupDialogMessage(msg) => {
         match msg {
-          popup_dialog::Message::OnOkButtonClicked(id) => {
+          widget::PopupDialogMessage::OnOkButtonClicked(id) => {
             self.popup_dialogs.remove(id);
             Task::none()
           }
@@ -143,12 +140,12 @@ impl RootWidget {
 
       Message::ConfirmDialogMessage(msg) => {
         match msg {
-          confirm_dialog::Message::OnConfirmButtonClicked(id) => {
+          widget::ConfirmDialogMessage::OnConfirmButtonClicked(id) => {
             let the_confirm_dialog = self.confirm_dialogs.remove(id);
             let next_msg = the_confirm_dialog.into_on_confirm_message();
             self.update(next_msg)
           }
-          confirm_dialog::Message::OnCancelButtonClicked(id) => {
+          widget::ConfirmDialogMessage::OnCancelButtonClicked(id) => {
             let the_confirm_dialog = self.confirm_dialogs.remove(id);
             let next_msg = the_confirm_dialog.into_on_cancel_message();
             self.update(next_msg)
@@ -195,7 +192,7 @@ impl RootWidget {
         self.add_popup_dialog(
           self.i18n.translate("popup_dialog.title.new_database_success"),
           String::new(),
-          PopupDialogType::Success
+          widget::PopupDialogType::Success
         );
         Task::none()
       }
@@ -204,7 +201,7 @@ impl RootWidget {
         self.add_popup_dialog(
           self.i18n.translate("popup_dialog.title.new_database_fail"),
           err,
-          PopupDialogType::Error
+          widget::PopupDialogType::Error
         );
         Task::none()
       }
@@ -253,7 +250,7 @@ impl RootWidget {
         self.add_popup_dialog(
           self.i18n.translate("popup_dialog.title.load_database_success"),
           String::new(),
-          PopupDialogType::Success
+          widget::PopupDialogType::Success
         );
         Task::none()
       }
@@ -262,7 +259,7 @@ impl RootWidget {
         self.add_popup_dialog(
           self.i18n.translate("popup_dialog.title.load_database_fail"),
           err,
-          PopupDialogType::Error
+          widget::PopupDialogType::Error
         );
         Task::none()
       }
@@ -274,14 +271,14 @@ impl RootWidget {
               self.add_popup_dialog(
                 self.i18n.translate("popup_dialog.title.save_database_success"),
                 String::new(),
-                PopupDialogType::Success
+                widget::PopupDialogType::Success
               );
             }
             Err(err) => {
               self.add_popup_dialog(
                 self.i18n.translate("popup_dialog.title.save_database_fail"),
                 err.to_string(),
-                PopupDialogType::Error
+                widget::PopupDialogType::Error
               );
             },
           }
@@ -290,7 +287,7 @@ impl RootWidget {
           self.add_popup_dialog(
             self.i18n.translate("popup_dialog.title.no_opened_database"),
             String::new(),
-            PopupDialogType::Warning,
+            widget::PopupDialogType::Warning,
           );
         }
         Task::none()
@@ -310,7 +307,7 @@ impl RootWidget {
           self.add_popup_dialog(
             self.i18n.translate("popup_dialog.title.no_opened_database"),
             String::new(),
-            PopupDialogType::Warning,
+            widget::PopupDialogType::Warning,
           );
           Task::none()
         }
@@ -334,7 +331,7 @@ impl RootWidget {
         self.add_popup_dialog(
           self.i18n.translate("popup_dialog.title.save_as_database_success"),
           String::new(),
-          PopupDialogType::Success
+          widget::PopupDialogType::Success
         );
         Task::none()
       }
@@ -343,7 +340,7 @@ impl RootWidget {
         self.add_popup_dialog(
           self.i18n.translate("popup_dialog.title.save_as_database_fail"),
           err.to_string(),
-          PopupDialogType::Error
+          widget::PopupDialogType::Error
         );
         Task::none()
       }
@@ -382,14 +379,14 @@ impl RootWidget {
     }
   }
 
-  pub fn add_popup_dialog(&mut self, title: String, content: String, r#type: PopupDialogType) {
+  pub fn add_popup_dialog(&mut self, title: String, content: String, r#type: widget::PopupDialogType) {
     let id = self.popup_dialogs.len();
-    self.popup_dialogs.push(PopupDialog::new(id, title, content, r#type));
+    self.popup_dialogs.push(widget::PopupDialog::new(id, title, content, r#type));
   }
 
   pub fn add_confirm_dialog(&mut self, title: String, content: String, on_confirm: Message, on_cancel: Message) {
     let id = self.confirm_dialogs.len();
-    self.confirm_dialogs.push(ConfirmDialog::new(id, title, content, on_confirm, on_cancel));
+    self.confirm_dialogs.push(widget::ConfirmDialog::new(id, title, content, on_confirm, on_cancel));
   }
 
 }
