@@ -1,4 +1,4 @@
-use iced::{widget::{button, row, text, toggler}, Element};
+use iced::{widget::{button, row, text, toggler}, Alignment, Element, Length};
 use log::warn;
 
 use crate::i18n::I18n;
@@ -78,6 +78,12 @@ impl Header {
       save_button,
       save_as_button,
       // debug_print_database_button,
-    ].into()
+    ]
+    .padding([12, 24])
+    .spacing(6)
+    .align_y(Alignment::Center)
+    .width(Length::Fill)
+    .height(Length::Shrink)
+    .into()
   }
 }
