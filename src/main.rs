@@ -39,9 +39,9 @@ pub fn main() -> Result<(), Box<dyn Error>> {
 pub enum Message {
 
   HeaderMessage(widget::HeaderMessage),
-
+  WorkingAreaMessage(widget::WorkingAreaMessage),
+  StatusBarMessage(widget::StatusBarMessage),
   PopupDialogMessage(widget::PopupDialogMessage),
-
   ConfirmDialogMessage(widget::ConfirmDialogMessage),
 
   NewDatabase,
@@ -81,6 +81,10 @@ struct RootWidget {
 
   header: widget::Header,
 
+  working_area: widget::WorkingArea,
+
+  status_bar: widget::StatusBar,
+
 }
 
 impl RootWidget {
@@ -98,6 +102,10 @@ impl RootWidget {
       confirm_dialogs: Vec::new(),
 
       header: widget::Header::new(),
+
+      working_area: widget::WorkingArea::new(),
+
+      status_bar: widget::StatusBar::new(),
     }
   }
 
@@ -127,6 +135,16 @@ impl RootWidget {
             Task::none()
           }
         }
+      }
+
+      Message::WorkingAreaMessage(msg) => {
+        self.working_area.update(msg);
+        Task::none()
+      }
+
+      Message::StatusBarMessage(msg) => {
+        self.status_bar.update(msg);
+        Task::none()
       }
 
       Message::PopupDialogMessage(msg) => {
@@ -182,6 +200,10 @@ impl RootWidget {
         match path {
           Some(path) => {
             self.database = Some(Database::new(path));
+            let db = self.database.as_mut().unwrap();
+            db.add_account("Sample Account 1", None);
+            db.add_account("Sample Account 2", None);
+            db.add_account("Sample Child Account 1", Some(0));
             self.update(Message::NewDatabaseSuccess)
           },
           None => Task::none()
@@ -354,6 +376,8 @@ impl RootWidget {
   pub fn view(&self) -> Element<Message> {
     let content = column![
       self.header.view(&self.i18n).map(Message::HeaderMessage),
+      self.working_area.view(&self.i18n).map(Message::WorkingAreaMessage),
+      self.status_bar.view(&self.i18n, self.database.as_ref()).map(Message::StatusBarMessage),
     ]
     .width(Length::Fill)
     .height(Length::Fill);
