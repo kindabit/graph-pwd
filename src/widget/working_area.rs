@@ -1,17 +1,27 @@
-use iced::{widget::{container, text}, Element, Length};
+mod table_view;
+mod tree_view;
 
-use crate::{global_state::GlobalState, i18n::I18n};
+use iced::{widget::{container, text}, Alignment, Element, Length, Padding};
+
+use crate::{database::Database, global_state::GlobalState, i18n::I18n, style_variable::StyleVariable, widget::working_area::table_view::TableView};
 
 pub struct WorkingArea {
+
+  table_view: TableView,
+
 }
 
 #[derive(Clone, Debug)]
 pub enum Message {
+
+  TableViewMessage(table_view::Message),
+
 }
 
 impl WorkingArea {
   pub fn new() -> Self {
     Self {
+      table_view: TableView::new(),
     }
   }
 
@@ -20,11 +30,25 @@ impl WorkingArea {
     }
   }
 
-  pub fn view(&self, i18n: &I18n, global_state: &GlobalState) -> Element<Message> {
+  pub fn view(&self, i18n: &I18n, database: Option<&Database>, global_state: &GlobalState, style_variable: &StyleVariable) -> Element<Message> {
     let tree_mode = global_state.tree_mode();
-    container(text(format!("working area, tree mode: {tree_mode}")))
-      .width(Length::Fill)
-      .height(Length::Fill)
-      .into()
+
+    let container =  match database {
+      Some(database) => {
+        container(self.table_view.view(i18n, database, style_variable).map(Message::TableViewMessage))
+        .width(Length::Fill)
+        .height(Length::Fill)
+      }
+      None => {
+        container(text(i18n.translate("working_area.no_opened_database")))
+        .align_x(Alignment::Center)
+        .align_y(Alignment::Center)
+      }
+    };
+
+    container
+    .width(Length::Fill)
+    .height(Length::Fill)
+    .into()
   }
 }

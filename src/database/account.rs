@@ -56,6 +56,10 @@ impl Account {
     }
   }
 
+  pub fn id(&self) -> usize {
+    self.id
+  }
+
   pub fn parent_account(&self) -> Option<usize> {
     self.parent_account
   }
@@ -63,6 +67,10 @@ impl Account {
   pub fn set_parent_account(&mut self, parent_account: Option<usize>) {
     self.parent_account = parent_account;
     self.update_modify_time();
+  }
+
+  pub fn children_accounts(&self) -> &HashSet<usize> {
+    &self.children_accounts
   }
 
   pub fn exist_children_account(&self, children_account: usize) -> bool {
@@ -79,6 +87,10 @@ impl Account {
     self.update_modify_time();
   }
 
+  pub fn reference_accounts(&self) -> &HashSet<usize> {
+    &self.reference_accounts
+  }
+
   pub fn exist_reference_account(&self, reference_account: usize) -> bool {
     self.reference_accounts.contains(&reference_account)
   }
@@ -91,6 +103,10 @@ impl Account {
   pub fn remove_reference_account(&mut self, reference_account: usize) {
     self.reference_accounts.remove(&reference_account);
     self.update_modify_time();
+  }
+
+  pub fn referenced_by_accounts(&self) -> &HashSet<usize> {
+    &self.referenced_by_accounts
   }
 
   pub fn exist_referenced_by_account(&self, referenced_by_account: usize) -> bool {

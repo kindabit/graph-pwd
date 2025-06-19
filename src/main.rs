@@ -4,6 +4,7 @@ mod logging;
 mod config;
 mod i18n;
 mod global_state;
+mod style_variable;
 mod database;
 mod widget;
 
@@ -11,27 +12,41 @@ use std::error::Error;
 
 use config::Config;
 use i18n::I18n;
-use iced::{widget::column, Element, Font, Length, Task};
+use iced::{widget::column, window::Position, Element, Font, Length, Task};
 use log::{debug, info};
 use logging::setup_logging;
 
-use crate::{database::Database, global_state::GlobalState, util::modal};
+use crate::{database::Database, global_state::GlobalState, style_variable::StyleVariable, util::modal};
 
 pub fn main() -> Result<(), Box<dyn Error>> {
   setup_logging()?;
 
-  let config = Config::new()?;
+  iced::application(
+    || {
+      let config = Config::new().expect("fail to initialize config");
+      debug!("config: {config:?}");
 
-  debug!("config: {config:?}");
+      let i18n = I18n::new(&config).expect("fail to initialize i18n");
+      debug!("i18n: {i18n:?}");
 
-  let i18n = I18n::new(&config)?;
-
-  debug!("i18n: {i18n:?}");
-
-  iced::application("Graph PWD", RootWidget::update, RootWidget::view)
-    .font(include_bytes!("./assets/SourceHanSansSC-Regular.otf"))
-    .default_font(Font::with_name("Source Han Sans SC"))
-    .run_with(|| (RootWidget::new(config, i18n), Task::none()))?;
+      (
+        RootWidget::new(config, i18n),
+        Task::none(),
+      )
+    },
+    RootWidget::update,
+    RootWidget::view
+  )
+  .font(include_bytes!("./assets/SourceHanSansSC-Regular.otf"))
+  .default_font(Font::with_name("Source Han Sans SC"))
+  .title("Graph PWD")
+  .window(iced::window::Settings {
+    position: Position::Specific([0_f32, 0_f32].into()),
+    size: [800_f32, 600_f32].into(),
+    maximized: true,
+    ..Default::default()
+  })
+  .run()?;
 
   Ok(())
 }
@@ -76,6 +91,8 @@ struct RootWidget {
 
   global_state: GlobalState,
 
+  style_variable: StyleVariable,
+
   database: Option<Database>,
 
   popup_dialogs: Vec<widget::PopupDialog>,
@@ -99,6 +116,8 @@ impl RootWidget {
       i18n,
 
       global_state: GlobalState::new(),
+
+      style_variable: StyleVariable::new(),
 
       database: None,
 
@@ -384,9 +403,9 @@ impl RootWidget {
 
   pub fn view(&self) -> Element<Message> {
     let content = column![
-      self.header.view(&self.i18n, &self.global_state).map(Message::HeaderMessage),
-      self.working_area.view(&self.i18n, &self.global_state).map(Message::WorkingAreaMessage),
-      self.status_bar.view(&self.i18n, self.database.as_ref()).map(Message::StatusBarMessage),
+      self.header.view(&self.i18n, &self.global_state, &self.style_variable).map(Message::HeaderMessage),
+      self.working_area.view(&self.i18n, self.database.as_ref(), &self.global_state, &self.style_variable).map(Message::WorkingAreaMessage),
+      self.status_bar.view(&self.i18n, self.database.as_ref(), &self.style_variable).map(Message::StatusBarMessage),
     ]
     .width(Length::Fill)
     .height(Length::Fill);

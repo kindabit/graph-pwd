@@ -1,6 +1,6 @@
 use iced::{widget::{row, text}, Alignment, Element, Length};
 
-use crate::{database::Database, i18n::I18n};
+use crate::{database::Database, i18n::I18n, style_variable::StyleVariable};
 
 pub struct StatusBar {
 }
@@ -20,7 +20,7 @@ impl StatusBar {
     }
   }
 
-  pub fn view(&self, i18n: &I18n, db: Option<&Database>) -> Element<Message> {
+  pub fn view(&self, i18n: &I18n, db: Option<&Database>, style_variable: &StyleVariable) -> Element<Message> {
     let mut current_database_string = i18n.translate("status_bar.current_database");
     let current_database_path_string = if let Some(db) = db {
       db.path().to_string()
@@ -33,7 +33,7 @@ impl StatusBar {
     row![
       current_database_text,
     ]
-    .padding([6, 12])
+    .padding(style_variable.status_bar_padding)
     .align_y(Alignment::Center)
     .width(Length::Fill)
     .height(Length::Shrink)
