@@ -1,7 +1,9 @@
 mod table_view;
 mod tree_view;
 
-use iced::{widget::{container, text}, Alignment, Element, Length, Padding};
+use std::sync::{Arc, Mutex};
+
+use iced::{widget::{container, text}, Alignment, Element, Length};
 
 use crate::{database::Database, global_state::GlobalState, i18n::I18n, style_variable::StyleVariable, widget::working_area::table_view::TableView};
 
@@ -30,7 +32,7 @@ impl WorkingArea {
     }
   }
 
-  pub fn view(&self, i18n: &I18n, database: Option<&Database>, global_state: &GlobalState, style_variable: &StyleVariable) -> Element<Message> {
+  pub fn view(&self, i18n: &I18n, database: Option<&Database>, global_state: &GlobalState, style_variable: &Arc<Mutex<StyleVariable>>) -> Element<Message> {
     let tree_mode = global_state.tree_mode();
 
     let container =  match database {

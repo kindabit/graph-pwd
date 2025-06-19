@@ -1,6 +1,8 @@
+use std::sync::{Arc, Mutex};
+
 use iced::{widget::{row, text}, Alignment, Element, Length};
 
-use crate::{database::Database, i18n::I18n, style_variable::StyleVariable};
+use crate::{database::Database, i18n::I18n, style_variable::{StyleVariable}};
 
 pub struct StatusBar {
 }
@@ -20,7 +22,7 @@ impl StatusBar {
     }
   }
 
-  pub fn view(&self, i18n: &I18n, db: Option<&Database>, style_variable: &StyleVariable) -> Element<Message> {
+  pub fn view(&self, i18n: &I18n, db: Option<&Database>, style_variable: &Arc<Mutex<StyleVariable>>) -> Element<Message> {
     let mut current_database_string = i18n.translate("status_bar.current_database");
     let current_database_path_string = if let Some(db) = db {
       db.path().to_string()
@@ -29,6 +31,8 @@ impl StatusBar {
     };
     current_database_string.push_str(&current_database_path_string);
     let current_database_text = text(current_database_string);
+
+    let style_variable = StyleVariable::lock(style_variable);
 
     row![
       current_database_text,

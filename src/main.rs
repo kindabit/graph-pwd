@@ -8,7 +8,7 @@ mod style_variable;
 mod database;
 mod widget;
 
-use std::error::Error;
+use std::{error::Error, sync::{Arc, Mutex}};
 
 use config::Config;
 use i18n::I18n;
@@ -91,7 +91,7 @@ struct RootWidget {
 
   global_state: GlobalState,
 
-  style_variable: StyleVariable,
+  style_variable: Arc<Mutex<StyleVariable>>,
 
   database: Option<Database>,
 
@@ -117,7 +117,7 @@ impl RootWidget {
 
       global_state: GlobalState::new(),
 
-      style_variable: StyleVariable::new(),
+      style_variable: Arc::new(Mutex::new(StyleVariable::new())),
 
       database: None,
 
