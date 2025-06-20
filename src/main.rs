@@ -244,6 +244,11 @@ impl RootWidget {
           String::new(),
           widget::PopupDialogType::Success
         );
+        self.working_area.update(
+          widget::WorkingAreaMessage::DatabaseUpdated {
+            accounts_len: self.database.as_ref().expect("database is None in Message::NewDatabaseSuccess").accounts().len()
+          }
+        );
         Task::none()
       }
 
@@ -301,6 +306,11 @@ impl RootWidget {
           self.i18n.translate("popup_dialog.title.load_database_success"),
           String::new(),
           widget::PopupDialogType::Success
+        );
+        self.working_area.update(
+          widget::WorkingAreaMessage::DatabaseUpdated {
+            accounts_len: self.database.as_ref().expect("database is None in Message::LoadDatabaseSuccess").accounts().len()
+          }
         );
         Task::none()
       }

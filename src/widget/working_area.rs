@@ -18,6 +18,10 @@ pub enum Message {
 
   TableViewMessage(table_view::Message),
 
+  DatabaseUpdated {
+    accounts_len: usize,
+  },
+
 }
 
 impl WorkingArea {
@@ -29,6 +33,12 @@ impl WorkingArea {
 
   pub fn update(&mut self, message: Message) {
     match message {
+      Message::TableViewMessage(msg) => {
+        self.table_view.update(msg)
+      }
+      Message::DatabaseUpdated { accounts_len } => {
+        self.table_view.update(table_view::Message::DatabaseUpdated { accounts_len })
+      }
     }
   }
 

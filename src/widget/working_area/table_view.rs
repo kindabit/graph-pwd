@@ -1,19 +1,43 @@
 use std::{cmp::min, sync::{Arc, Mutex}};
 
-use iced::{widget::{container, scrollable, text::Wrapping, Button, Column, Container, Row, Text}, Alignment, Element, Length};
+use iced::{widget::{container, scrollable, text::Wrapping, Button, Column, Container, PickList, Row, Space, Text, TextInput}, Alignment, Element, Length};
+use log::warn;
 
 use crate::{database::Database, i18n::I18n, style_variable::{StyleVariable}};
 
 pub struct TableView {
 
+  total_page_no: usize,
+
   page_no: usize,
 
   page_size: usize,
+
+  available_page_size: [usize; 5],
+
+  jump_to_page_no: usize,
+
+  cached_database_accounts_len: usize,
 
 }
 
 #[derive(Clone, Debug)]
 pub enum Message {
+
+  DatabaseUpdated {
+    accounts_len: usize,
+  },
+
+  OnPageSizeSelected(usize),
+
+  OnPrevPressed,
+
+  OnPostPressed,
+
+  OnJumpToInput(String),
+
+  OnJumpToPressed,
+
 }
 
 impl TableView {
@@ -35,16 +59,86 @@ impl TableView {
   pub fn new() -> Self {
     Self {
       page_no: 1,
-      page_size: 30,
+      total_page_no: 1,
+      page_size: 10,
+      available_page_size: [10, 20, 30, 40, 50],
+      jump_to_page_no: 1,
+      cached_database_accounts_len: 1,
     }
   }
 
   pub fn update(&mut self, message: Message) {
     match message {
+      Message::DatabaseUpdated { accounts_len } => {
+        // validate page number & jump to page number
+        if (self.page_no - 1) * self.page_size >= accounts_len {
+          self.page_no = 1;
+        }
+        if (self.jump_to_page_no - 1) * self.page_size >= accounts_len {
+          self.jump_to_page_no = 1;
+        }
+        // update total page number
+        if accounts_len == 0 {
+          self.total_page_no = 1;
+        }
+        else {
+          self.total_page_no = (accounts_len - 1) / self.page_size + 1;
+        }
+
+        self.cached_database_accounts_len = accounts_len;
+      }
+      Message::OnPageSizeSelected(new_page_size) => {
+        self.page_size = new_page_size;
+
+        // validate page number & jump to page number (same logic as Message::DatabaseUpdated)
+        if (self.page_no - 1) * self.page_size >= self.cached_database_accounts_len {
+          self.page_no = 1;
+        }
+        if (self.jump_to_page_no - 1) * self.page_size >= self.cached_database_accounts_len {
+          self.jump_to_page_no = 1;
+        }
+        // update total page number (same logic as Message::DatabaseUpdated)
+        if self.cached_database_accounts_len == 0 {
+          self.total_page_no = 1;
+        }
+        else {
+          self.total_page_no = (self.cached_database_accounts_len - 1) / self.page_size + 1;
+        }
+      }
+      Message::OnPrevPressed => {
+        if self.page_no > 1 {
+          self.page_no -= 1;
+        }
+      }
+      Message::OnPostPressed => {
+        if self.page_no < self.total_page_no {
+          self.page_no += 1;
+        }
+      }
+      Message::OnJumpToInput(page_no_string) => {
+        match usize::from_str_radix(&page_no_string, 10) {
+          Ok(page_no) => {
+            if page_no < 1 {
+              self.jump_to_page_no = 1;
+            }
+            else if page_no > self.total_page_no {
+              self.jump_to_page_no = self.total_page_no;
+            }
+            else {
+              self.jump_to_page_no = page_no;
+            }
+          }
+          Err(err) => {
+            warn!("fail to parse jump to: {err:?}");
+          }
+        }
+      }
+      Message::OnJumpToPressed => {
+        self.page_no = self.jump_to_page_no;
+      }
     }
   }
 
-  /// todo: pagination
   pub fn view(&self, i18n: &I18n, database: &Database, style_variable: &Arc<Mutex<StyleVariable>>) -> Element<Message> {
     let mut table = Column::new().push(self.head(i18n, style_variable));
 
@@ -53,26 +147,28 @@ impl TableView {
       body = body.push(row);
     }
 
-    let style_variable = StyleVariable::lock(style_variable);
-    let body = scrollable(
-      body
+    let style_variable_temp = StyleVariable::lock(style_variable);
+    table = table.push(
+      scrollable(
+        body
+        .width(Length::Fill)
+        .height(Length::Shrink)
+      )
       .width(Length::Fill)
-      .height(Length::Shrink)
-    )
-    .width(Length::Fill)
-    .height(Length::Fill)
-    .direction(
-      scrollable::Direction::Vertical(
-        scrollable::Scrollbar::new()
-        .width(style_variable.working_area_table_view_scrollbar_width)
-        .margin(style_variable.working_area_table_view_scrollbar_margin)
-        .scroller_width(style_variable.working_area_table_view_scroller_width)
-        .anchor(scrollable::Anchor::Start)
+      .height(Length::Fill)
+      .direction(
+        scrollable::Direction::Vertical(
+          scrollable::Scrollbar::new()
+          .width(style_variable_temp.working_area_table_view_scrollbar_width)
+          .margin(style_variable_temp.working_area_table_view_scrollbar_margin)
+          .scroller_width(style_variable_temp.working_area_table_view_scroller_width)
+          .anchor(scrollable::Anchor::Start)
+        )
       )
     );
-    drop(style_variable);
+    drop(style_variable_temp);
 
-    table = table.push(body);
+    table = table.push(self.footer(i18n, style_variable));
 
     table
     .width(Length::Fill)
@@ -288,7 +384,54 @@ impl TableView {
     rows
   }
 
-  pub fn head_cell_common(&self, s: impl Into<String>) -> Container<Message> {
+  fn footer(&self, i18n: &I18n, style_variable: &Arc<Mutex<StyleVariable>>) -> Container<Message> {
+    let style_variable = StyleVariable::lock(style_variable);
+
+    Container::new(
+      Row::new()
+      .push(Space::new(Length::Fill, Length::Fixed(3_f32)))
+      .push(Text::new(i18n.translate("working_area.table_view.footer.page_size")))
+      .push(
+        PickList::new(
+          self.available_page_size,
+          Some(self.page_size),
+          Message::OnPageSizeSelected,
+        )
+      )
+      .push(
+        Button::new(Text::new(i18n.translate("working_area.table_view.footer.prev")))
+        .on_press(Message::OnPrevPressed)
+      )
+      .push(
+        Text::new(self.page_no.to_string())
+      )
+      .push(Text::new("/"))
+      .push(
+        Text::new(self.total_page_no.to_string())
+      )
+      .push(
+        Button::new(Text::new(i18n.translate("working_area.table_view.footer.post")))
+        .on_press(Message::OnPostPressed)
+      )
+      .push(
+        TextInput::new("", &self.jump_to_page_no.to_string())
+        .width(style_variable.working_area_table_view_footer_jump_to_input_width)
+        .on_input(Message::OnJumpToInput)
+        .on_paste(Message::OnJumpToInput)
+      )
+      .push(
+        Button::new(Text::new(i18n.translate("working_area.table_view.footer.jump_to")))
+        .on_press(Message::OnJumpToPressed)
+      )
+      .width(Length::Fill)
+      .height(Length::Shrink)
+      .align_y(Alignment::Center)
+      .spacing(style_variable.working_area_table_view_footer_spacing)
+      .padding(style_variable.working_area_table_view_footer_padding)
+    )
+  }
+
+  fn head_cell_common(&self, s: impl Into<String>) -> Container<Message> {
     container(
       Text::new(s.into())
       .wrapping(Wrapping::None)
@@ -299,7 +442,7 @@ impl TableView {
     .clip(true)
   }
 
-  pub fn body_text_cell_common(&self, s: impl Into<String>) -> Container<Message> {
+  fn body_text_cell_common(&self, s: impl Into<String>) -> Container<Message> {
     container(
       Text::new(s.into())
       .wrapping(Wrapping::None)
@@ -309,7 +452,7 @@ impl TableView {
     .clip(true)
   }
 
-  pub fn body_link_cell_common(&self, s: impl Into<String>, style_variable: &Arc<Mutex<StyleVariable>>) -> Container<Message> {
+  fn body_link_cell_common(&self, s: impl Into<String>, style_variable: &Arc<Mutex<StyleVariable>>) -> Container<Message> {
     let style_variable = style_variable.clone();
 
     container(

@@ -36,6 +36,12 @@ pub struct StyleVariable {
 
   pub working_area_table_view_scrollbar_margin: Pixels,
 
+  pub working_area_table_view_footer_padding: Padding,
+
+  pub working_area_table_view_footer_jump_to_input_width: Pixels,
+
+  pub working_area_table_view_footer_spacing: Pixels,
+
   pub status_bar_padding: Padding,
 
 }
@@ -54,7 +60,7 @@ impl StyleVariable {
       working_area_table_view_head_padding: Padding {
         top: 6_f32,
         right: 12_f32,
-        bottom: 0_f32,
+        bottom: 6_f32,
         left: 12_f32,
       },
       working_area_table_view_head_spacing: Pixels(12_f32),
@@ -66,7 +72,7 @@ impl StyleVariable {
         )
       ),
       working_area_table_view_body_padding: Padding {
-        top: 6_f32,
+        top: 3_f32,
         right: 12_f32,
         bottom: 0_f32,
         left: 12_f32,
@@ -109,6 +115,14 @@ impl StyleVariable {
       working_area_table_view_scrollbar_width: Pixels(6_f32),
       working_area_table_view_scroller_width: Pixels(6_f32),
       working_area_table_view_scrollbar_margin: Pixels(6_f32),
+      working_area_table_view_footer_padding: Padding {
+        top: 6_f32,
+        right: 12_f32,
+        bottom: 0_f32,
+        left: 12_f32,
+      },
+      working_area_table_view_footer_jump_to_input_width: Pixels(96_f32),
+      working_area_table_view_footer_spacing: Pixels(6_f32),
       status_bar_padding: Padding {
         top: 6_f32,
         right: 12_f32,
