@@ -16,7 +16,7 @@ use iced::{widget::column, window::Position, Element, Font, Length, Task};
 use log::{debug, info};
 use logging::setup_logging;
 
-use crate::{database::Database, global_state::GlobalState, style_variable::StyleVariable, util::modal};
+use crate::{database::{account::Account, Database}, global_state::GlobalState, style_variable::StyleVariable, util::modal};
 
 pub fn main() -> Result<(), Box<dyn Error>> {
   setup_logging()?;
@@ -59,6 +59,7 @@ pub enum Message {
   StatusBarMessage(widget::StatusBarMessage),
   PopupDialogMessage(widget::PopupDialogMessage),
   ConfirmDialogMessage(widget::ConfirmDialogMessage),
+  AddOrEditAccountDialogMessage(widget::AddOrEditAccountDialogMessage),
 
   NewDatabase,
   NewDatabaseConfirmed,
@@ -99,6 +100,8 @@ struct RootWidget {
 
   confirm_dialogs: Vec<widget::ConfirmDialog>,
 
+  add_or_edit_account_dialog: Option<widget::AddOrEditAccountDialog>,
+
   header: widget::Header,
 
   working_area: widget::WorkingArea,
@@ -124,6 +127,8 @@ impl RootWidget {
       popup_dialogs: Vec::new(),
 
       confirm_dialogs: Vec::new(),
+
+      add_or_edit_account_dialog: None,
 
       header: widget::Header::new(),
 
@@ -166,7 +171,21 @@ impl RootWidget {
       }
 
       Message::WorkingAreaMessage(msg) => {
-        self.working_area.update(msg);
+        if let widget::WorkingAreaMessage::TableViewMessage(msg) = msg {
+          if let widget::WorkingAreaTableViewMessage::OnAddAccountPressed = msg {
+            self.add_or_edit_account_dialog = Some(widget::AddOrEditAccountDialog::new(
+              widget::AddOrEditAccountDialogMode::Add,
+              None
+            ));
+          }
+          else {
+            let repack = widget::WorkingAreaMessage::TableViewMessage(msg);
+            self.working_area.update(repack);
+          }
+        }
+        else {
+          self.working_area.update(msg);
+        }
         Task::none()
       }
 
@@ -199,6 +218,105 @@ impl RootWidget {
         }
       }
 
+      Message::AddOrEditAccountDialogMessage(msg) => {
+        if let Some(add_or_edit_account_dialog) = self.add_or_edit_account_dialog.as_mut() {
+          if let Some(database) = self.database.as_mut() {
+            match msg {
+              widget::AddOrEditAccountDialogMessage::OnConfirmButtonClicked => {
+                if add_or_edit_account_dialog.validate() {
+                  match add_or_edit_account_dialog.mode() {
+                    widget::AddOrEditAccountDialogMode::Add => {
+                      // create new account
+                      let mut new_account = Account::new(
+                        database.accounts().len(),
+                        add_or_edit_account_dialog.name().to_string(),
+                        add_or_edit_account_dialog.parent_account().map(|value| value.0)
+                      );
+                      for ref_acc in add_or_edit_account_dialog.reference_accounts() {
+                        new_account.add_reference_account(*ref_acc.0);
+                      }
+                      new_account.set_service(add_or_edit_account_dialog.service().map(String::from));
+                      new_account.set_login_name(add_or_edit_account_dialog.login_name().map(String::from));
+                      new_account.set_password(add_or_edit_account_dialog.password().map(String::from));
+                      new_account.set_comment(add_or_edit_account_dialog.comment().map(String::from));
+                      for custom_field in add_or_edit_account_dialog.custom_fields() {
+                        new_account.add_custom_field(custom_field.0.clone(), custom_field.1.clone());
+                      }
+
+                      // update children accounts
+                      if let Some(parent_account_id) = new_account.parent_account() {
+                        let parent_account = database.accounts_mut().get_mut(parent_account_id);
+                        match parent_account {
+                          Some(parent_account) => {
+                            match parent_account {
+                              Some(parent_account) => {
+                                parent_account.add_children_account(new_account.id());
+                              }
+                              None => {
+                                panic!("parent account (id={parent_account_id}) has been deleted");
+                              }
+                            }
+                          }
+                          None => {
+                            panic!("parent account id ({parent_account_id}) out of bounds");
+                          }
+                        }
+                      }
+
+                      // update referenced by accounts
+                      for reference_account_id in new_account.reference_accounts() {
+                        let reference_account = database.accounts_mut().get_mut(*reference_account_id);
+                        match reference_account {
+                          Some(reference_account) => {
+                            match reference_account {
+                              Some(reference_account) => {
+                                reference_account.add_referenced_by_account(new_account.id());
+                              }
+                              None => {
+                                panic!("reference account (id={reference_account_id}) has been deleted");
+                              }
+                            }
+                          }
+                          None => {
+                            panic!("reference account id ({reference_account_id}) out of bounds");
+                          }
+                        }
+                      }
+
+                      // push new account into database
+                      database.add_account(new_account);
+                    },
+                    widget::AddOrEditAccountDialogMode::Edit => todo!(),
+                  }
+                  self.add_or_edit_account_dialog = None;
+                  self.broadcast_database_update();
+                }
+                else {
+                  self.add_popup_dialog(
+                    "popup_dialog.title.fail_to_add_account",
+                    "popup_dialog.content.fail_to_add_account",
+                    widget::PopupDialogType::Warning,
+                  );
+                }
+              }
+              widget::AddOrEditAccountDialogMessage::OnCancelButtonClicked => {
+                self.add_or_edit_account_dialog = None;
+              }
+              other => {
+                add_or_edit_account_dialog.update(other);
+              }
+            }
+          }
+          else {
+            panic!("received AddOrEditAccountDialogMessage while database is None");
+          }
+        }
+        else {
+          panic!("received AddOrEditAccountDialogMessage while add_or_edit_account_dialog is None");
+        }
+        Task::none()
+      }
+
       Message::NewDatabase => {
         if self.database.is_some() {
           self.add_confirm_dialog(
@@ -229,9 +347,9 @@ impl RootWidget {
           Some(path) => {
             self.database = Some(Database::new(path));
             let db = self.database.as_mut().unwrap();
-            db.add_account("Sample Account 1", None);
-            db.add_account("Sample Account 2", None);
-            db.add_account("Sample Child Account 1", Some(0));
+            db.add_account(Account::new(0, "Sample Account 1".to_string(), None));
+            db.add_account(Account::new(1, "Sample Account 2".to_string(), None));
+            db.add_account(Account::new(2, "Sample Child Account 1".to_string(), Some(0)));
             self.update(Message::NewDatabaseSuccess)
           },
           None => Task::none()
@@ -244,11 +362,7 @@ impl RootWidget {
           String::new(),
           widget::PopupDialogType::Success
         );
-        self.working_area.update(
-          widget::WorkingAreaMessage::DatabaseUpdated {
-            accounts_len: self.database.as_ref().expect("database is None in Message::NewDatabaseSuccess").accounts().len()
-          }
-        );
+        self.broadcast_database_update();
         Task::none()
       }
 
@@ -307,11 +421,7 @@ impl RootWidget {
           String::new(),
           widget::PopupDialogType::Success
         );
-        self.working_area.update(
-          widget::WorkingAreaMessage::DatabaseUpdated {
-            accounts_len: self.database.as_ref().expect("database is None in Message::LoadDatabaseSuccess").accounts().len()
-          }
-        );
+        self.broadcast_database_update();
         Task::none()
       }
 
@@ -436,12 +546,24 @@ impl RootWidget {
         Message::Noop
       )
     }
+    else if let Some(add_or_edit_account_dialog) = self.add_or_edit_account_dialog.as_ref() {
+      if let Some(database) = self.database.as_ref() {
+        modal(
+          content,
+          add_or_edit_account_dialog.view(&self.i18n, database, &self.style_variable).map(Message::AddOrEditAccountDialogMessage),
+          Message::Noop,
+        )
+      }
+      else {
+        panic!("database is None while add_or_edit_account_dialog is Some, which is meaningless, and shouldn't happen");
+      }
+    }
     else {
       content.into()
     }
   }
 
-  pub fn add_popup_dialog(&mut self, title: String, content: String, r#type: widget::PopupDialogType) {
+  pub fn add_popup_dialog(&mut self, title: impl Into<String>, content: impl Into<String>, r#type: widget::PopupDialogType) {
     let id = self.popup_dialogs.len();
     self.popup_dialogs.push(widget::PopupDialog::new(id, title, content, r#type));
   }
@@ -449,6 +571,17 @@ impl RootWidget {
   pub fn add_confirm_dialog(&mut self, title: String, content: String, on_confirm: Message, on_cancel: Message) {
     let id = self.confirm_dialogs.len();
     self.confirm_dialogs.push(widget::ConfirmDialog::new(id, title, content, on_confirm, on_cancel));
+  }
+
+  /// there may be more widgets which need to be informed when database is updated,
+  /// this associated function should be the only entrance of this logic
+  fn broadcast_database_update(&mut self) {
+    let database = self.database.as_ref().expect("database is None when broadcasting database update");
+    self.working_area.update(
+      widget::WorkingAreaMessage::DatabaseUpdated {
+        accounts_len: database.accounts().len()
+      }
+    );
   }
 
 }

@@ -37,7 +37,7 @@ pub struct Account {
 
 impl Account {
 
-  pub(super) fn new(id: usize, name: String, parent_account: Option<usize>) -> Self {
+  pub fn new(id: usize, name: String, parent_account: Option<usize>) -> Self {
     let now = Local::now();
     Self {
       id,

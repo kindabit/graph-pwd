@@ -1,5 +1,5 @@
-mod table_view;
-mod tree_view;
+pub mod table_view;
+pub mod tree_view;
 
 use std::sync::{Arc, Mutex};
 

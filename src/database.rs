@@ -31,8 +31,11 @@ impl Database {
     &self.accounts
   }
 
-  pub fn add_account(&mut self, name: impl Into<String>, parent_account: Option<usize>) {
-    let account = Account::new(self.accounts.len(), name.into(), parent_account);
+  pub fn accounts_mut(&mut self) -> &mut Vec<Option<Account>> {
+    &mut self.accounts
+  }
+
+  pub fn add_account(&mut self, account: Account) {
     self.accounts.push(Some(account));
   }
 

@@ -1,6 +1,6 @@
 use std::sync::{Arc, Mutex, MutexGuard};
 
-use iced::{Background, Color, Padding, Pixels};
+use iced::{Background, Color, Length, Padding, Pixels};
 
 pub struct StyleVariable {
 
@@ -44,6 +44,26 @@ pub struct StyleVariable {
 
   pub status_bar_padding: Padding,
 
+  pub mini_account_selector_height: Length,
+
+  pub mini_account_selector_scrollbar_width: Pixels,
+
+  pub mini_account_selector_scroller_width: Pixels,
+
+  pub mini_account_selector_scrollbar_margin: Pixels,
+
+  pub mini_account_selector_table_account_id_width: Length,
+
+  pub mini_account_selector_selected_account_background: Background,
+
+  pub add_or_edit_account_dialog_form_padding: Padding,
+
+  pub add_or_edit_account_dialog_scrollbar_width: Pixels,
+
+  pub add_or_edit_account_dialog_scrollbar_margin: Pixels,
+
+  pub add_or_edit_account_dialog_scroller_width: Pixels,
+
 }
 
 impl StyleVariable {
@@ -72,9 +92,9 @@ impl StyleVariable {
         )
       ),
       working_area_table_view_body_padding: Padding {
-        top: 3_f32,
+        top: 4_f32,
         right: 12_f32,
-        bottom: 0_f32,
+        bottom: 4_f32,
         left: 12_f32,
       },
       working_area_table_view_body_spacing: Pixels(12_f32),
@@ -129,6 +149,27 @@ impl StyleVariable {
         bottom: 6_f32,
         left: 12_f32,
       },
+      mini_account_selector_height: Length::Fixed(200_f32),
+      mini_account_selector_scrollbar_width: Pixels(6_f32),
+      mini_account_selector_scroller_width: Pixels(6_f32),
+      mini_account_selector_scrollbar_margin: Pixels(6_f32),
+      mini_account_selector_table_account_id_width: Length::Fixed(32_f32),
+      mini_account_selector_selected_account_background: Background::Color(
+        Color::from_rgb8(
+          127_u8,
+          127_u8,
+          127_u8,
+        )
+      ),
+      add_or_edit_account_dialog_form_padding: Padding {
+        top: 6_f32,
+        right: 18_f32,
+        bottom: 6_f32,
+        left: 6_f32,
+      },
+      add_or_edit_account_dialog_scrollbar_width: Pixels(6_f32),
+      add_or_edit_account_dialog_scroller_width: Pixels(6_f32),
+      add_or_edit_account_dialog_scrollbar_margin: Pixels(6_f32),
     }
   }
 

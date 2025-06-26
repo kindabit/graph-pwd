@@ -5,6 +5,8 @@ use log::warn;
 
 use crate::{database::Database, i18n::I18n, style_variable::{StyleVariable}};
 
+const MODULE_PATH: &str = module_path!();
+
 pub struct TableView {
 
   total_page_no: usize,
@@ -27,6 +29,8 @@ pub enum Message {
   DatabaseUpdated {
     accounts_len: usize,
   },
+
+  OnAddAccountPressed,
 
   OnPageSizeSelected(usize),
 
@@ -86,6 +90,9 @@ impl TableView {
         }
 
         self.cached_database_accounts_len = accounts_len;
+      }
+      Message::OnAddAccountPressed => {
+        warn!("Event {MODULE_PATH}::Message::OnAddAccountPressed should be intercepted");
       }
       Message::OnPageSizeSelected(new_page_size) => {
         self.page_size = new_page_size;
@@ -389,6 +396,10 @@ impl TableView {
 
     Container::new(
       Row::new()
+      .push(
+        Button::new(Text::new(i18n.translate("working_area.table_view.footer.add_account")))
+        .on_press(Message::OnAddAccountPressed)
+      )
       .push(Space::new(Length::Fill, Length::Fixed(3_f32)))
       .push(Text::new(i18n.translate("working_area.table_view.footer.page_size")))
       .push(
