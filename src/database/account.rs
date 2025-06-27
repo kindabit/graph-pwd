@@ -1,4 +1,4 @@
-use std::{collections::{HashMap, HashSet}, error::Error};
+use std::{collections::{BTreeMap, BTreeSet}, error::Error};
 
 use chrono::{DateTime, Local};
 
@@ -11,11 +11,11 @@ pub struct Account {
 
   parent_account: Option<usize>,
 
-  children_accounts: HashSet<usize>,
+  children_accounts: BTreeSet<usize>,
 
-  reference_accounts: HashSet<usize>,
+  reference_accounts: BTreeSet<usize>,
 
-  referenced_by_accounts: HashSet<usize>,
+  referenced_by_accounts: BTreeSet<usize>,
 
   name: String,
 
@@ -27,7 +27,7 @@ pub struct Account {
 
   comment: Option<String>,
 
-  custom_fields: HashMap<String, String>,
+  custom_fields: BTreeMap<String, String>,
 
   create_time: DateTime<Local>,
 
@@ -42,15 +42,15 @@ impl Account {
     Self {
       id,
       parent_account,
-      children_accounts: HashSet::new(),
-      reference_accounts: HashSet::new(),
-      referenced_by_accounts: HashSet::new(),
+      children_accounts: BTreeSet::new(),
+      reference_accounts: BTreeSet::new(),
+      referenced_by_accounts: BTreeSet::new(),
       name,
       service: None,
       login_name: None,
       password: None,
       comment: None,
-      custom_fields: HashMap::new(),
+      custom_fields: BTreeMap::new(),
       create_time: now.clone(),
       modify_time: now.clone(),
     }
@@ -69,7 +69,7 @@ impl Account {
     self.update_modify_time();
   }
 
-  pub fn children_accounts(&self) -> &HashSet<usize> {
+  pub fn children_accounts(&self) -> &BTreeSet<usize> {
     &self.children_accounts
   }
 
@@ -89,7 +89,7 @@ impl Account {
     self.update_modify_time();
   }
 
-  pub fn reference_accounts(&self) -> &HashSet<usize> {
+  pub fn reference_accounts(&self) -> &BTreeSet<usize> {
     &self.reference_accounts
   }
 
@@ -113,7 +113,7 @@ impl Account {
     self.reference_accounts.clear();
   }
 
-  pub fn referenced_by_accounts(&self) -> &HashSet<usize> {
+  pub fn referenced_by_accounts(&self) -> &BTreeSet<usize> {
     &self.referenced_by_accounts
   }
 
@@ -178,7 +178,7 @@ impl Account {
     self.update_modify_time();
   }
 
-  pub fn custom_fields(&self) -> &HashMap<String, String> {
+  pub fn custom_fields(&self) -> &BTreeMap<String, String> {
     &self.custom_fields
   }
 
@@ -216,15 +216,15 @@ impl Account {
   pub fn from_reader(reader: &mut ByteSliceReader) -> Result<Account, Box<dyn Error>> {
     let id = reader.read_usize()?;
     let parent_account = reader.read_option_usize()?;
-    let children_accounts = reader.read_hashset_usize()?;
-    let reference_accounts = reader.read_hashset_usize()?;
-    let referenced_by_accounts = reader.read_hashset_usize()?;
+    let children_accounts = reader.read_btreeset_usize()?;
+    let reference_accounts = reader.read_btreeset_usize()?;
+    let referenced_by_accounts = reader.read_btreeset_usize()?;
     let name = reader.read_string()?;
     let service = reader.read_option_string()?;
     let login_name = reader.read_option_string()?;
     let password = reader.read_option_string()?;
     let comment = reader.read_option_string()?;
-    let custom_fields = reader.read_hashmap_string_string()?;
+    let custom_fields = reader.read_btreemap_string_string()?;
     let create_time = reader.read_datetime_local()?;
     let modify_time = reader.read_datetime_local()?;
 
@@ -248,15 +248,15 @@ impl Account {
   pub fn write(&self, writer: &mut ByteVecWriter) {
     writer.write_usize(self.id);
     writer.write_option_usize(self.parent_account);
-    writer.write_hashset_usize(&self.children_accounts);
-    writer.write_hashset_usize(&self.reference_accounts);
-    writer.write_hashset_usize(&self.referenced_by_accounts);
+    writer.write_btreeset_usize(&self.children_accounts);
+    writer.write_btreeset_usize(&self.reference_accounts);
+    writer.write_btreeset_usize(&self.referenced_by_accounts);
     writer.write_string(&self.name);
     writer.write_option_string(&self.service);
     writer.write_option_string(&self.login_name);
     writer.write_option_string(&self.password);
     writer.write_option_string(&self.comment);
-    writer.write_hashmap_string_string(&self.custom_fields);
+    writer.write_btreemap_string_string(&self.custom_fields);
     writer.write_datetime_local(&self.create_time);
     writer.write_datetime_local(&self.modify_time);
   }

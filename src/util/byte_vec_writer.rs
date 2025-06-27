@@ -1,4 +1,4 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::{BTreeMap, BTreeSet};
 
 use chrono::{DateTime, Local};
 
@@ -43,7 +43,7 @@ impl <'a> ByteVecWriter<'a> {
     }
   }
 
-  pub fn write_hashset_usize(&mut self, data: &HashSet<usize>) {
+  pub fn write_btreeset_usize(&mut self, data: &BTreeSet<usize>) {
     self.ve.extend_from_slice(&data.len().to_le_bytes());
     data.iter().for_each(|item| {
       self.write_usize(*item);
@@ -68,7 +68,7 @@ impl <'a> ByteVecWriter<'a> {
     }
   }
 
-  pub fn write_hashmap_string_string(&mut self, data: &HashMap<String, String>) {
+  pub fn write_btreemap_string_string(&mut self, data: &BTreeMap<String, String>) {
     self.ve.extend_from_slice(&data.len().to_le_bytes());
     data.iter().for_each(|(key, value)| {
       self.write_string(key);

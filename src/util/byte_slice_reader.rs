@@ -1,4 +1,4 @@
-use std::{collections::{HashMap, HashSet}, error::Error, io::Read};
+use std::{collections::{BTreeMap, BTreeSet}, error::Error, io::Read};
 
 use chrono::{DateTime, Local, Utc};
 
@@ -55,13 +55,13 @@ impl <'a> ByteSliceReader<'a> {
     }
   }
 
-  pub fn read_hashset_usize(&mut self) -> Result<HashSet<usize>, Box<dyn Error>> {
+  pub fn read_btreeset_usize(&mut self) -> Result<BTreeSet<usize>, Box<dyn Error>> {
     let len = self.read_usize()?;
-    let mut hashset = HashSet::with_capacity(len);
+    let mut btreeset = BTreeSet::new();
     for _ in 0..len {
-      hashset.insert(self.read_usize()?);
+      btreeset.insert(self.read_usize()?);
     }
-    Ok(hashset)
+    Ok(btreeset)
   }
 
   pub fn read_string(&mut self) -> Result<String, Box<dyn Error>> {
@@ -86,15 +86,15 @@ impl <'a> ByteSliceReader<'a> {
     }
   }
 
-  pub fn read_hashmap_string_string(&mut self) -> Result<HashMap<String, String>, Box<dyn Error>> {
+  pub fn read_btreemap_string_string(&mut self) -> Result<BTreeMap<String, String>, Box<dyn Error>> {
     let len = self.read_usize()?;
-    let mut hashmap = HashMap::new();
+    let mut btreemap = BTreeMap::new();
     for _ in 0..len {
       let key = self.read_string()?;
       let value = self.read_string()?;
-      hashmap.insert(key, value);
+      btreemap.insert(key, value);
     }
-    Ok(hashmap)
+    Ok(btreemap)
   }
 
   pub fn read_datetime_local(&mut self) -> Result<DateTime<Local>, Box<dyn Error>> {
@@ -107,10 +107,6 @@ impl <'a> ByteSliceReader<'a> {
         Err(AppError::boxed(format!("timestamp millis out of range: {timestamp_ms}"), None))
       }
     }
-  }
-
-  pub fn slice_len(&self) -> usize {
-    self.slice.len()
   }
 
 }
