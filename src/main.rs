@@ -172,15 +172,32 @@ impl RootWidget {
 
       Message::WorkingAreaMessage(msg) => {
         if let widget::WorkingAreaMessage::TableViewMessage(msg) = msg {
-          if let widget::WorkingAreaTableViewMessage::OnAddAccountPressed = msg {
-            self.add_or_edit_account_dialog = Some(widget::AddOrEditAccountDialog::new(
-              widget::AddOrEditAccountDialogMode::Add,
-              None
-            ));
+          if let Some(database) = self.database.as_ref() {
+            if let widget::WorkingAreaTableViewMessage::OnAddAccountPressed = msg {
+              self.add_or_edit_account_dialog = Some(widget::AddOrEditAccountDialog::new(
+                widget::AddOrEditAccountDialogMode::Add,
+                None,
+                database,
+              ));
+            }
+            else if let widget::WorkingAreaTableViewMessage::OnAccountModifyPress(id) = msg {
+              let old_account = database.accounts().get(id)
+                .expect(&format!("Old account id ({id}) out of bounds"))
+                .as_ref()
+                .expect(&format!("Old account is deleted (id={id})"));
+              self.add_or_edit_account_dialog = Some(widget::AddOrEditAccountDialog::new(
+                widget::AddOrEditAccountDialogMode::Edit,
+                Some(old_account),
+                database,
+              ));
+            }
+            else {
+              let repack = widget::WorkingAreaMessage::TableViewMessage(msg);
+              self.working_area.update(repack);
+            }
           }
           else {
-            let repack = widget::WorkingAreaMessage::TableViewMessage(msg);
-            self.working_area.update(repack);
+            panic!("received WorkingAreaMessage::TableViewMessage while database is None");
           }
         }
         else {
@@ -285,18 +302,109 @@ impl RootWidget {
 
                       // push new account into database
                       database.add_account(new_account);
-                    },
-                    widget::AddOrEditAccountDialogMode::Edit => todo!(),
+                    }
+                    widget::AddOrEditAccountDialogMode::Edit => {
+                      // retrieve old account, temporarily "delete" the old account
+                      // to prevent two mutable borrows of database exist at the same time
+                      let old_account_id = add_or_edit_account_dialog.id().expect("id is None when editing account");
+                      let mut old_account = database.accounts_mut()
+                        .get_mut(old_account_id)
+                        .expect(&format!("Old account id ({old_account_id}) out of bounds"))
+                        .take()
+                        .expect(&format!("Old account (id={old_account_id}) is deleted while editing account"));
+
+                      if old_account_id != old_account.id() {
+                        panic!("old_account_id ({}) != old_account.id() ({})", old_account_id, old_account.id());
+                      }
+
+                      // update old account
+                      // update children-parent relationship
+                      // first, detach this account (if necessary)
+                      if let Some(parent_account_id) = old_account.parent_account() {
+                        database.accounts_mut()
+                          .get_mut(parent_account_id)
+                          .expect(&format!("Parent account id ({parent_account_id}) out of bounds"))
+                          .as_mut()
+                          .expect(&format!("Parent account (id={parent_account_id}) is deleted"))
+                          .remove_children_account(old_account_id);
+                      }
+                      // then, rebuild children-parent relationship
+                      if let Some(parent_account) = add_or_edit_account_dialog.parent_account() {
+                        old_account.set_parent_account(Some(parent_account.0));
+                        database.accounts_mut()
+                          .get_mut(parent_account.0)
+                          .expect(&format!("Parent account id ({}) out of bounds", parent_account.0))
+                          .as_mut()
+                          .expect(&format!("Parent account (id={}) is deleted", parent_account.0))
+                          .add_children_account(old_account_id);
+                      }
+                      else {
+                        old_account.set_parent_account(None);
+                      }
+
+                      // update reference relationships
+                      // first, remove this account from reference accounts
+                      for reference_account_id in old_account.reference_accounts() {
+                        database.accounts_mut()
+                          .get_mut(*reference_account_id)
+                          .expect(&format!("Reference account id ({reference_account_id}) out of bounds"))
+                          .as_mut()
+                          .expect(&format!("Reference account (id={reference_account_id}) is deleted"))
+                          .remove_referenced_by_account(old_account_id);
+                      }
+                      // then, clear all references
+                      old_account.clear_reference_accounts();
+                      // finally, rebuild reference relationships
+                      for reference_account in add_or_edit_account_dialog.reference_accounts() {
+                        old_account.add_reference_account(*reference_account.0);
+                        database.accounts_mut()
+                          .get_mut(*reference_account.0)
+                          .expect(&format!("Reference account id ({}) out of bounds", reference_account.0))
+                          .as_mut()
+                          .expect(&format!("Reference account (id={}) is deleted", reference_account.0))
+                          .add_referenced_by_account(old_account_id);
+                      }
+
+                      old_account.set_name(add_or_edit_account_dialog.name().to_string());
+                      old_account.set_service(add_or_edit_account_dialog.service().map(String::from));
+                      old_account.set_login_name(add_or_edit_account_dialog.login_name().map(String::from));
+                      old_account.set_password(add_or_edit_account_dialog.password().map(String::from));
+                      old_account.set_comment(add_or_edit_account_dialog.comment().map(String::from));
+
+                      old_account.clear_custom_fields();
+                      for custom_field in add_or_edit_account_dialog.custom_fields() {
+                        old_account.add_custom_field(custom_field.0.to_string(), custom_field.1.to_string());
+                      }
+
+                      // put modified account back into database
+                      if let Some(_) = database.accounts_mut()
+                      .get_mut(old_account_id)
+                      .expect(&format!("Old account id ({old_account_id}) out of bounds"))
+                      .replace(old_account) {
+                        panic!("Option::replace should return None as old account has been temporarily deleted");
+                      }
+                    }
                   }
                   self.add_or_edit_account_dialog = None;
                   self.broadcast_database_update();
                 }
                 else {
-                  self.add_popup_dialog(
-                    "popup_dialog.title.fail_to_add_account",
-                    "popup_dialog.content.fail_to_add_account",
-                    widget::PopupDialogType::Warning,
-                  );
+                  match add_or_edit_account_dialog.mode() {
+                    widget::AddOrEditAccountDialogMode::Add => {
+                      self.add_popup_dialog(
+                        "popup_dialog.title.fail_to_add_account",
+                        "popup_dialog.content.fail_to_add_account",
+                        widget::PopupDialogType::Warning,
+                      )
+                    }
+                    widget::AddOrEditAccountDialogMode::Edit => {
+                      self.add_popup_dialog(
+                        "popup_dialog.title.fail_to_edit_account",
+                        "popup_dialog.content.fail_to_edit_account",
+                        widget::PopupDialogType::Warning,
+                      )
+                    }
+                  }
                 }
               }
               widget::AddOrEditAccountDialogMessage::OnCancelButtonClicked => {

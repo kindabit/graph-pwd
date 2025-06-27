@@ -30,6 +30,8 @@ pub enum Message {
     accounts_len: usize,
   },
 
+  OnAccountModifyPress(usize),
+
   OnAddAccountPressed,
 
   OnPageSizeSelected(usize),
@@ -90,6 +92,9 @@ impl TableView {
         }
 
         self.cached_database_accounts_len = accounts_len;
+      }
+      Message::OnAccountModifyPress(_id) => {
+        warn!("Event {MODULE_PATH}::Message::OnAccountModifyPress should be intercepted");
       }
       Message::OnAddAccountPressed => {
         warn!("Event {MODULE_PATH}::Message::OnAddAccountPressed should be intercepted");
@@ -344,6 +349,7 @@ impl TableView {
               )
               .push(
                 Button::new(Text::new(i18n.translate("working_area.table_view.body.operation.modify")))
+                .on_press(Message::OnAccountModifyPress(account.id()))
               )
               .push(
                 Button::new(Text::new(i18n.translate("working_area.table_view.body.operation.delete")))

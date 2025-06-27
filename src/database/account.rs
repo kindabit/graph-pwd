@@ -83,7 +83,9 @@ impl Account {
   }
 
   pub fn remove_children_account(&mut self, children_account: usize) {
-    self.children_accounts.remove(&children_account);
+    if self.children_accounts.remove(&children_account) == false {
+      panic!("Child account (id={children_account}) does not exist");
+    }
     self.update_modify_time();
   }
 
@@ -101,8 +103,14 @@ impl Account {
   }
 
   pub fn remove_reference_account(&mut self, reference_account: usize) {
-    self.reference_accounts.remove(&reference_account);
+    if self.reference_accounts.remove(&reference_account) == false {
+      panic!("Reference account (id={reference_account}) does not exist");
+    }
     self.update_modify_time();
+  }
+
+  pub fn clear_reference_accounts(&mut self) {
+    self.reference_accounts.clear();
   }
 
   pub fn referenced_by_accounts(&self) -> &HashSet<usize> {
@@ -119,7 +127,9 @@ impl Account {
   }
 
   pub fn remove_referenced_by_account(&mut self, referenced_by_account: usize) {
-    self.referenced_by_accounts.remove(&referenced_by_account);
+    if self.referenced_by_accounts.remove(&referenced_by_account) == false {
+      panic!("Referenced by account (id={referenced_by_account}) does not exist");
+    }
     self.update_modify_time();
   }
 
@@ -179,6 +189,11 @@ impl Account {
 
   pub fn remove_custom_field(&mut self, key: String) {
     self.custom_fields.remove(&key);
+    self.update_modify_time();
+  }
+
+  pub fn clear_custom_fields(&mut self) {
+    self.custom_fields.clear();
     self.update_modify_time();
   }
 

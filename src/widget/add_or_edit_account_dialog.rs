@@ -3,7 +3,7 @@ use std::{collections::BTreeMap, sync::{Arc, Mutex}};
 use iced::{widget::{scrollable, Button, Column, Row, Scrollable, Space, Text, TextInput}, Alignment, Element, Length};
 use log::warn;
 
-use crate::{database::Database, i18n::I18n, style_variable::StyleVariable};
+use crate::{database::{account::Account, Database}, i18n::I18n, style_variable::StyleVariable};
 
 use super::MiniAccountSelector;
 
@@ -101,37 +101,95 @@ pub enum Message {
 
 impl AddOrEditAccountDialog {
 
-  pub fn new(mode: AddOrEditAccountDialogMode, id: Option<usize>) -> Self {
+  pub fn new(mode: AddOrEditAccountDialogMode, old_account: Option<&Account>, database: &Database) -> Self {
     match mode {
       AddOrEditAccountDialogMode::Add => {
-        if id.is_some() {
-          panic!("when mode is AddOrEditAccountDialogMode::Add, id must be None");
+        match old_account {
+          Some(_) => {
+            panic!("when mode is AddOrEditAccountDialogMode::Add, old_account must be None");
+          }
+          None => {
+            Self {
+              mode,
+              id: None,
+              account_selector: MiniAccountSelector::new(),
+              parent_account: None,
+              parent_account_search: String::new(),
+              reference_accounts: BTreeMap::new(),
+              reference_accounts_search: String::new(),
+              name: String::new(),
+              name_error: Some(NameError::Empty),
+              service: None,
+              login_name: None,
+              password: None,
+              comment: None,
+              custom_fields: BTreeMap::new(),
+              custom_field_name: String::new(),
+              custom_field_value: String::new(),
+            }
+          }
         }
       }
       AddOrEditAccountDialogMode::Edit => {
-        if id.is_none() {
-          panic!("when mode is AddOrEditAccountDialogMode::Edit, id must be Some");
+        match old_account {
+          Some(old_account) => {
+            Self {
+              mode,
+              id: Some(old_account.id()),
+              account_selector: MiniAccountSelector::new(),
+              parent_account: match old_account.parent_account() {
+                Some(parent_account_id) => {
+                  Some((
+                    parent_account_id,
+                    database.accounts()[parent_account_id]
+                      .as_ref()
+                      .expect(&format!("Parent account (id={parent_account_id}) is deleted"))
+                      .name()
+                      .to_string()
+                  ))
+                }
+                None => {
+                  None
+                }
+              },
+              parent_account_search: String::new(),
+              reference_accounts: {
+                let mut reference_accounts: BTreeMap<usize, String> = BTreeMap::new();
+                for reference_account_id in old_account.reference_accounts() {
+                  reference_accounts.insert(
+                    *reference_account_id,
+                    database.accounts()[*reference_account_id]
+                      .as_ref()
+                      .expect(&format!("Reference account (id={reference_account_id}) is deleted"))
+                      .name()
+                      .to_string()
+                  );
+                }
+                reference_accounts
+              },
+              reference_accounts_search: String::new(),
+              name: old_account.name().to_string(),
+              name_error: None,
+              service: old_account.service().map(String::from),
+              login_name: old_account.login_name().map(String::from),
+              password: old_account.password().map(String::from),
+              comment: old_account.comment().map(String::from),
+              custom_fields: {
+                let mut custom_fields: BTreeMap<String, String> = BTreeMap::new();
+                for custom_field in old_account.custom_fields() {
+                  custom_fields.insert(custom_field.0.to_string(), custom_field.1.to_string());
+                }
+                custom_fields
+              },
+              custom_field_name: String::new(),
+              custom_field_value: String::new(),
+            }
+          }
+          None => {
+            panic!("when mode is AddOrEditAccountDialogMode::Edit, old_account must be Some");
+          }
         }
       }
-    }
-
-    Self {
-      mode,
-      id,
-      account_selector: MiniAccountSelector::new(),
-      parent_account: None,
-      parent_account_search: String::new(),
-      reference_accounts: BTreeMap::new(),
-      reference_accounts_search: String::new(),
-      name: String::new(),
-      name_error: Some(NameError::Empty),
-      service: None,
-      login_name: None,
-      password: None,
-      comment: None,
-      custom_fields: BTreeMap::new(),
-      custom_field_name: String::new(),
-      custom_field_value: String::new(),
     }
   }
 
