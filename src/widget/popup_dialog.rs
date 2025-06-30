@@ -29,7 +29,7 @@ pub struct PopupDialog {
 #[derive(Clone, Debug)]
 pub enum Message {
 
-  OnOkButtonClicked(usize),
+  OnOkButtonPress(usize),
 
 }
 
@@ -50,7 +50,7 @@ impl PopupDialog {
     let content = text(i18n.translate(&self.content));
 
     let ok_button = button(text(i18n.translate("popup_dialog.ok_button")))
-      .on_press(Message::OnOkButtonClicked(self.id));
+      .on_press(Message::OnOkButtonPress(self.id));
 
     column![
       title,

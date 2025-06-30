@@ -146,19 +146,19 @@ impl RootWidget {
             self.global_state.set_tree_mode(toggled);
             Task::none()
           }
-          widget::HeaderMessage::OnNewButtonClicked => {
+          widget::HeaderMessage::OnNewButtonPress => {
             self.update(Message::NewDatabase)
           }
-          widget::HeaderMessage::OnLoadButtonClicked => {
+          widget::HeaderMessage::OnLoadButtonPress => {
             self.update(Message::LoadDatabase)
           }
-          widget::HeaderMessage::OnSaveButtonClicked => {
+          widget::HeaderMessage::OnSaveButtonPress => {
             self.update(Message::SaveDatabase)
           }
-          widget::HeaderMessage::OnSaveAsButtonClicked => {
+          widget::HeaderMessage::OnSaveAsButtonPress => {
             self.update(Message::SaveAsDatabase)
           }
-          widget::HeaderMessage::OnDebugPrintDatabaseButtonClicked => {
+          widget::HeaderMessage::OnDebugPrintDatabaseButtonPress => {
             let db = &self.database;
             info!("{db:?}");
             Task::none()
@@ -169,7 +169,7 @@ impl RootWidget {
       Message::WorkingAreaMessage(msg) => {
         if let widget::WorkingAreaMessage::TableViewMessage(msg) = msg {
           if let Some(database) = self.database.as_ref() {
-            if let widget::WorkingAreaTableViewMessage::OnAddAccountPressed = msg {
+            if let widget::WorkingAreaTableViewMessage::OnAddAccountPress = msg {
               self.add_or_edit_account_dialog = Some(widget::AddOrEditAccountDialog::new(
                 widget::AddOrEditAccountDialogMode::Add,
                 None,
@@ -207,7 +207,7 @@ impl RootWidget {
 
       Message::PopupDialogMessage(msg) => {
         match msg {
-          widget::PopupDialogMessage::OnOkButtonClicked(id) => {
+          widget::PopupDialogMessage::OnOkButtonPress(id) => {
             self.popup_dialogs.remove(id);
             Task::none()
           }
@@ -216,12 +216,12 @@ impl RootWidget {
 
       Message::ConfirmDialogMessage(msg) => {
         match msg {
-          widget::ConfirmDialogMessage::OnConfirmButtonClicked(id) => {
+          widget::ConfirmDialogMessage::OnConfirmButtonPress(id) => {
             let the_confirm_dialog = self.confirm_dialogs.remove(id);
             let next_msg = the_confirm_dialog.into_on_confirm_message();
             self.update(next_msg)
           }
-          widget::ConfirmDialogMessage::OnCancelButtonClicked(id) => {
+          widget::ConfirmDialogMessage::OnCancelButtonPress(id) => {
             let the_confirm_dialog = self.confirm_dialogs.remove(id);
             let next_msg = the_confirm_dialog.into_on_cancel_message();
             self.update(next_msg)
@@ -233,7 +233,7 @@ impl RootWidget {
         if let Some(add_or_edit_account_dialog) = self.add_or_edit_account_dialog.as_mut() {
           if let Some(database) = self.database.as_mut() {
             match msg {
-              widget::AddOrEditAccountDialogMessage::OnConfirmButtonClicked => {
+              widget::AddOrEditAccountDialogMessage::OnConfirmButtonPress => {
                 if add_or_edit_account_dialog.validate() {
                   match add_or_edit_account_dialog.mode() {
                     widget::AddOrEditAccountDialogMode::Add => {
@@ -401,7 +401,7 @@ impl RootWidget {
                   }
                 }
               }
-              widget::AddOrEditAccountDialogMessage::OnCancelButtonClicked => {
+              widget::AddOrEditAccountDialogMessage::OnCancelButtonPress => {
                 self.add_or_edit_account_dialog = None;
               }
               other => {

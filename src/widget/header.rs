@@ -10,11 +10,11 @@ pub struct Header {
 #[derive(Clone, Debug)]
 pub enum Message {
   OnTreeModeToggled(bool),
-  OnNewButtonClicked,
-  OnLoadButtonClicked,
-  OnSaveButtonClicked,
-  OnSaveAsButtonClicked,
-  OnDebugPrintDatabaseButtonClicked,
+  OnNewButtonPress,
+  OnLoadButtonPress,
+  OnSaveButtonPress,
+  OnSaveAsButtonPress,
+  OnDebugPrintDatabaseButtonPress,
 }
 
 impl Header {
@@ -30,19 +30,19 @@ impl Header {
       .on_toggle(|toggled| Message::OnTreeModeToggled(toggled));
 
     let new_button = button(text(i18n.translate("header.new_button")))
-      .on_press(Message::OnNewButtonClicked);
+      .on_press(Message::OnNewButtonPress);
 
     let load_button = button(text(i18n.translate("header.load_button")))
-      .on_press(Message::OnLoadButtonClicked);
+      .on_press(Message::OnLoadButtonPress);
 
     let save_button = button(text(i18n.translate("header.save_button")))
-      .on_press(Message::OnSaveButtonClicked);
+      .on_press(Message::OnSaveButtonPress);
 
     let save_as_button = button(text(i18n.translate("header.save_as_button")))
-      .on_press(Message::OnSaveAsButtonClicked);
+      .on_press(Message::OnSaveAsButtonPress);
 
     // let debug_print_database_button = button(text("DBG PRT DB"))
-    //   .on_press(Message::OnDebugPrintDatabaseButtonClicked);
+    //   .on_press(Message::OnDebugPrintDatabaseButtonPress);
 
     let mut header_row = row![
       tree_mode_label,

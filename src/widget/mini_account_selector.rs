@@ -11,7 +11,7 @@ pub struct MiniAccountSelector {
 pub enum Message {
 
   /// (id)
-  OnRowClick(usize),
+  OnRowPress(usize),
 
 }
 
@@ -121,7 +121,7 @@ impl MiniAccountSelector {
               }
             })
           )
-          .on_press(Message::OnRowClick(account.id()))
+          .on_press(Message::OnRowPress(account.id()))
         )
       }
     }

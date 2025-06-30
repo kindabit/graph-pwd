@@ -19,9 +19,9 @@ pub struct ConfirmDialog {
 #[derive(Clone, Debug)]
 pub enum Message {
 
-  OnConfirmButtonClicked(usize),
+  OnConfirmButtonPress(usize),
 
-  OnCancelButtonClicked(usize),
+  OnCancelButtonPress(usize),
 
 }
 
@@ -49,10 +49,10 @@ impl ConfirmDialog {
     let content = text(&self.content);
 
     let confirm_button = button(text(i18n.translate("confirm_dialog.confirm_button")))
-      .on_press(Message::OnConfirmButtonClicked(self.id));
+      .on_press(Message::OnConfirmButtonPress(self.id));
 
     let cancel_button = button(text(i18n.translate("confirm_dialog.cancel_button")))
-      .on_press(Message::OnCancelButtonClicked(self.id));
+      .on_press(Message::OnCancelButtonPress(self.id));
 
     column![
       title,

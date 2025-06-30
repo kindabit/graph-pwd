@@ -64,13 +64,13 @@ pub struct AddOrEditAccountDialog {
 #[derive(Clone, Debug)]
 pub enum Message {
 
-  OnClearParentAccountClicked,
+  OnClearParentAccountPress,
 
   OnParentAccountSearchInputInput(String),
 
   ParentAccountSelectorMessage(super::MiniAccountSelectorMessage),
 
-  OnClearReferenceAccountClicked(usize),
+  OnClearReferenceAccountPress(usize),
 
   OnReferenceAccountsSearchInputInput(String),
 
@@ -86,17 +86,17 @@ pub enum Message {
 
   OnCommentInputInput(String),
 
-  OnRemoveCustomFieldClick(String),
+  OnRemoveCustomFieldPress(String),
 
   OnCustomFieldNameInputInput(String),
 
   OnCustomFieldValueInputInput(String),
 
-  OnAddCustomFieldClick,
+  OnAddCustomFieldPress,
 
-  OnConfirmButtonClicked,
+  OnConfirmButtonPress,
 
-  OnCancelButtonClicked,
+  OnCancelButtonPress,
 
 }
 
@@ -169,7 +169,7 @@ impl AddOrEditAccountDialog {
 
   pub fn update(&mut self, msg: Message) {
     match msg {
-      Message::OnClearParentAccountClicked => {
+      Message::OnClearParentAccountPress => {
         self.parent_account = None;
       }
       Message::OnParentAccountSearchInputInput(value) => {
@@ -177,12 +177,12 @@ impl AddOrEditAccountDialog {
       }
       Message::ParentAccountSelectorMessage(msg) => {
         match msg {
-          super::MiniAccountSelectorMessage::OnRowClick(id) => {
+          super::MiniAccountSelectorMessage::OnRowPress(id) => {
             self.parent_account = Some(id);
           }
         }
       }
-      Message::OnClearReferenceAccountClicked(id) => {
+      Message::OnClearReferenceAccountPress(id) => {
         self.reference_accounts.remove(&id);
       }
       Message::OnReferenceAccountsSearchInputInput(value) => {
@@ -190,7 +190,7 @@ impl AddOrEditAccountDialog {
       }
       Message::ReferenceAccountsSelectorMessage(msg) => {
         match msg {
-          super::MiniAccountSelectorMessage::OnRowClick(id) => {
+          super::MiniAccountSelectorMessage::OnRowPress(id) => {
             self.reference_accounts.insert(id);
           }
         }
@@ -241,7 +241,7 @@ impl AddOrEditAccountDialog {
           self.comment = Some(value.to_string())
         }
       }
-      Message::OnRemoveCustomFieldClick(field_name) => {
+      Message::OnRemoveCustomFieldPress(field_name) => {
         self.custom_fields.remove(&field_name);
       }
       Message::OnCustomFieldNameInputInput(value) => {
@@ -252,16 +252,16 @@ impl AddOrEditAccountDialog {
         let value = value.trim();
         self.custom_field_value = value.to_string();
       }
-      Message::OnAddCustomFieldClick => {
+      Message::OnAddCustomFieldPress => {
         if self.custom_field_name.len() > 0 {
           self.custom_fields.insert(self.custom_field_name.clone(), self.custom_field_value.clone());
         }
       }
-      Message::OnConfirmButtonClicked => {
-        warn!("Event {MODULE_PATH}::Message::OnConfirmButtonClicked should be intercepted");
+      Message::OnConfirmButtonPress => {
+        warn!("Event {MODULE_PATH}::Message::OnConfirmButtonPress should be intercepted");
       }
-      Message::OnCancelButtonClicked => {
-        warn!("Event {MODULE_PATH}::Message::OnCancelButtonClicked should be intercepted");
+      Message::OnCancelButtonPress => {
+        warn!("Event {MODULE_PATH}::Message::OnCancelButtonPress should be intercepted");
       }
     }
   }
@@ -311,11 +311,11 @@ impl AddOrEditAccountDialog {
           Row::new()
           .push(
             Button::new(Text::new(i18n.translate("add_or_edit_account_dialog.confirm_button")))
-            .on_press(Message::OnConfirmButtonClicked)
+            .on_press(Message::OnConfirmButtonPress)
           )
           .push(
             Button::new(Text::new(i18n.translate("add_or_edit_account_dialog.cancel_button")))
-            .on_press(Message::OnCancelButtonClicked)
+            .on_press(Message::OnCancelButtonPress)
           )
         )
         .width(Length::Fill)
@@ -352,7 +352,7 @@ impl AddOrEditAccountDialog {
         self.get_account_detail(*parent_account, database),
       )));
 
-      let clear_parent_account = Button::new(Text::new("X")).on_press(Message::OnClearParentAccountClicked);
+      let clear_parent_account = Button::new(Text::new("X")).on_press(Message::OnClearParentAccountPress);
       selected_parent_account_row = selected_parent_account_row.push(clear_parent_account);
     }
 
@@ -410,7 +410,7 @@ impl AddOrEditAccountDialog {
           ))
         )
         .push(
-          Button::new(Text::new("X")).on_press(Message::OnClearReferenceAccountClicked(*reference_account))
+          Button::new(Text::new("X")).on_press(Message::OnClearReferenceAccountPress(*reference_account))
         )
         .align_y(Alignment::Center)
       )
@@ -571,7 +571,7 @@ impl AddOrEditAccountDialog {
           Text::new(format!("{}: {}", custom_field.0, custom_field.1))
         )
         .push(
-          Button::new(Text::new("X")).on_press(Message::OnRemoveCustomFieldClick(custom_field.0.to_string()))
+          Button::new(Text::new("X")).on_press(Message::OnRemoveCustomFieldPress(custom_field.0.to_string()))
         )
       );
     }
@@ -593,7 +593,7 @@ impl AddOrEditAccountDialog {
       )
       .push(
         Button::new(Text::new(i18n.translate("add_or_edit_account_dialog.add_custom_field")))
-        .on_press(Message::OnAddCustomFieldClick)
+        .on_press(Message::OnAddCustomFieldPress)
       )
       .align_y(Alignment::Center)
     );

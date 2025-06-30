@@ -32,17 +32,17 @@ pub enum Message {
 
   OnAccountModifyPress(usize),
 
-  OnAddAccountPressed,
+  OnAddAccountPress,
 
-  OnPageSizeSelected(usize),
+  OnPageSizeSelect(usize),
 
-  OnPrevPressed,
+  OnPrevPress,
 
-  OnPostPressed,
+  OnPostPress,
 
   OnJumpToInput(String),
 
-  OnJumpToPressed,
+  OnJumpToPress,
 
 }
 
@@ -96,10 +96,10 @@ impl TableView {
       Message::OnAccountModifyPress(_id) => {
         warn!("Event {MODULE_PATH}::Message::OnAccountModifyPress should be intercepted");
       }
-      Message::OnAddAccountPressed => {
-        warn!("Event {MODULE_PATH}::Message::OnAddAccountPressed should be intercepted");
+      Message::OnAddAccountPress => {
+        warn!("Event {MODULE_PATH}::Message::OnAddAccountPress should be intercepted");
       }
-      Message::OnPageSizeSelected(new_page_size) => {
+      Message::OnPageSizeSelect(new_page_size) => {
         self.page_size = new_page_size;
 
         // validate page number & jump to page number (same logic as Message::DatabaseUpdated)
@@ -117,12 +117,12 @@ impl TableView {
           self.total_page_no = (self.cached_database_accounts_len - 1) / self.page_size + 1;
         }
       }
-      Message::OnPrevPressed => {
+      Message::OnPrevPress => {
         if self.page_no > 1 {
           self.page_no -= 1;
         }
       }
-      Message::OnPostPressed => {
+      Message::OnPostPress => {
         if self.page_no < self.total_page_no {
           self.page_no += 1;
         }
@@ -145,7 +145,7 @@ impl TableView {
           }
         }
       }
-      Message::OnJumpToPressed => {
+      Message::OnJumpToPress => {
         self.page_no = self.jump_to_page_no;
       }
     }
@@ -404,7 +404,7 @@ impl TableView {
       Row::new()
       .push(
         Button::new(Text::new(i18n.translate("working_area.table_view.footer.add_account")))
-        .on_press(Message::OnAddAccountPressed)
+        .on_press(Message::OnAddAccountPress)
       )
       .push(Space::new(Length::Fill, Length::Fixed(3_f32)))
       .push(Text::new(i18n.translate("working_area.table_view.footer.page_size")))
@@ -412,12 +412,12 @@ impl TableView {
         PickList::new(
           self.available_page_size,
           Some(self.page_size),
-          Message::OnPageSizeSelected,
+          Message::OnPageSizeSelect,
         )
       )
       .push(
         Button::new(Text::new(i18n.translate("working_area.table_view.footer.prev")))
-        .on_press(Message::OnPrevPressed)
+        .on_press(Message::OnPrevPress)
       )
       .push(
         Text::new(self.page_no.to_string())
@@ -428,7 +428,7 @@ impl TableView {
       )
       .push(
         Button::new(Text::new(i18n.translate("working_area.table_view.footer.post")))
-        .on_press(Message::OnPostPressed)
+        .on_press(Message::OnPostPress)
       )
       .push(
         TextInput::new("", &self.jump_to_page_no.to_string())
@@ -438,7 +438,7 @@ impl TableView {
       )
       .push(
         Button::new(Text::new(i18n.translate("working_area.table_view.footer.jump_to")))
-        .on_press(Message::OnJumpToPressed)
+        .on_press(Message::OnJumpToPress)
       )
       .width(Length::Fill)
       .height(Length::Shrink)
