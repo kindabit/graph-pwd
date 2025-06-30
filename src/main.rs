@@ -449,9 +449,16 @@ impl RootWidget {
           Some(path) => {
             self.database = Some(Database::new(path));
             let db = self.database.as_mut().unwrap();
-            db.add_account(Account::new(0, "Sample Account 1".to_string(), None));
-            db.add_account(Account::new(1, "Sample Account 2".to_string(), None));
-            db.add_account(Account::new(2, "Sample Child Account 1".to_string(), Some(0)));
+
+            let account_1 = Account::new(0, "Sample Account 1".to_string(), None);
+            let mut account_2 = Account::new(1, "Sample Account 2".to_string(), None);
+            account_2.add_children_account(2);
+            let account_3 = Account::new(2, "Sample Child Account 1".to_string(), Some(1));
+
+            db.add_account(account_1);
+            db.add_account(account_2);
+            db.add_account(account_3);
+
             self.update(Message::NewDatabaseSuccess)
           },
           None => Task::none()
