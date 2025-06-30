@@ -1,4 +1,4 @@
-use std::{collections::BTreeMap, sync::{Arc, Mutex}};
+use std::{collections::{BTreeMap, BTreeSet}, sync::{Arc, Mutex}};
 
 use iced::{widget::{scrollable, Button, Column, Row, Scrollable, Space, Text, TextInput}, Alignment, Element, Length};
 use log::warn;
@@ -31,12 +31,13 @@ pub struct AddOrEditAccountDialog {
 
   account_selector: MiniAccountSelector,
 
-  /// Option<(id, detail)>
-  parent_account: Option<(usize, String)>,
+  /// Option<id>
+  parent_account: Option<usize>,
 
   parent_account_search: String,
 
-  reference_accounts: BTreeMap<usize, String>,
+  /// BTreeSet<id>
+  reference_accounts: BTreeSet<usize>,
 
   reference_accounts_search: String,
 
@@ -101,7 +102,7 @@ pub enum Message {
 
 impl AddOrEditAccountDialog {
 
-  pub fn new(mode: AddOrEditAccountDialogMode, old_account: Option<&Account>, database: &Database) -> Self {
+  pub fn new(mode: AddOrEditAccountDialogMode, old_account: Option<&Account>) -> Self {
     match mode {
       AddOrEditAccountDialogMode::Add => {
         match old_account {
@@ -115,7 +116,7 @@ impl AddOrEditAccountDialog {
               account_selector: MiniAccountSelector::new(),
               parent_account: None,
               parent_account_search: String::new(),
-              reference_accounts: BTreeMap::new(),
+              reference_accounts: BTreeSet::new(),
               reference_accounts_search: String::new(),
               name: String::new(),
               name_error: Some(NameError::Empty),
@@ -137,36 +138,9 @@ impl AddOrEditAccountDialog {
               mode,
               id: Some(old_account.id()),
               account_selector: MiniAccountSelector::new(),
-              parent_account: match old_account.parent_account() {
-                Some(parent_account_id) => {
-                  Some((
-                    parent_account_id,
-                    database.accounts()[parent_account_id]
-                      .as_ref()
-                      .expect(&format!("Parent account (id={parent_account_id}) is deleted"))
-                      .name()
-                      .to_string()
-                  ))
-                }
-                None => {
-                  None
-                }
-              },
+              parent_account: old_account.parent_account(),
               parent_account_search: String::new(),
-              reference_accounts: {
-                let mut reference_accounts: BTreeMap<usize, String> = BTreeMap::new();
-                for reference_account_id in old_account.reference_accounts() {
-                  reference_accounts.insert(
-                    *reference_account_id,
-                    database.accounts()[*reference_account_id]
-                      .as_ref()
-                      .expect(&format!("Reference account (id={reference_account_id}) is deleted"))
-                      .name()
-                      .to_string()
-                  );
-                }
-                reference_accounts
-              },
+              reference_accounts: old_account.reference_accounts().clone(),
               reference_accounts_search: String::new(),
               name: old_account.name().to_string(),
               name_error: None,
@@ -203,8 +177,8 @@ impl AddOrEditAccountDialog {
       }
       Message::ParentAccountSelectorMessage(msg) => {
         match msg {
-          super::MiniAccountSelectorMessage::OnRowClick(id, detail) => {
-            self.parent_account = Some((id, detail));
+          super::MiniAccountSelectorMessage::OnRowClick(id) => {
+            self.parent_account = Some(id);
           }
         }
       }
@@ -216,8 +190,8 @@ impl AddOrEditAccountDialog {
       }
       Message::ReferenceAccountsSelectorMessage(msg) => {
         match msg {
-          super::MiniAccountSelectorMessage::OnRowClick(id, detail) => {
-            self.reference_accounts.insert(id, detail);
+          super::MiniAccountSelectorMessage::OnRowClick(id) => {
+            self.reference_accounts.insert(id);
           }
         }
       }
@@ -372,8 +346,11 @@ impl AddOrEditAccountDialog {
     selected_parent_account_row = selected_parent_account_row.push(parent_account_label);
 
     if let Some(parent_account) = self.parent_account.as_ref() {
-      let parent_account_detail = Text::new(format!("{}. {}", parent_account.0, parent_account.1));
-      selected_parent_account_row = selected_parent_account_row.push(parent_account_detail);
+      selected_parent_account_row = selected_parent_account_row.push(Text::new(format!(
+        "{}. {}",
+        parent_account,
+        self.get_account_detail(*parent_account, database),
+      )));
 
       let clear_parent_account = Button::new(Text::new("X")).on_press(Message::OnClearParentAccountClicked);
       selected_parent_account_row = selected_parent_account_row.push(clear_parent_account);
@@ -395,7 +372,7 @@ impl AddOrEditAccountDialog {
         self.account_selector.view(
           database,
           &self.parent_account_search,
-          &[parent_account.0],
+          &[*parent_account],
           style_variable,
         )
       }
@@ -426,10 +403,14 @@ impl AddOrEditAccountDialog {
       form = form.push(
         Row::new()
         .push(
-          Text::new(format!("{}. {}", reference_account.0, reference_account.1))
+          Text::new(format!(
+            "{}. {}",
+            reference_account,
+            self.get_account_detail(*reference_account, database),
+          ))
         )
         .push(
-          Button::new(Text::new("X")).on_press(Message::OnClearReferenceAccountClicked(*reference_account.0))
+          Button::new(Text::new("X")).on_press(Message::OnClearReferenceAccountClicked(*reference_account))
         )
         .align_y(Alignment::Center)
       )
@@ -444,7 +425,7 @@ impl AddOrEditAccountDialog {
 
     // reference accounts - reference accounts selector
 
-    let reference_account_ids: Vec<usize> = self.reference_accounts.iter().map(|pair| *pair.0).collect();
+    let reference_account_ids: Vec<usize> = self.reference_accounts.iter().map(|pair| *pair).collect();
     let reference_accounts_selector = self.account_selector.view(
       database,
       &self.reference_accounts_search,
@@ -629,6 +610,16 @@ impl AddOrEditAccountDialog {
     }
   }
 
+  /// This should be the only place where "account detail" is defined
+  fn get_account_detail(&self, id: usize, database: &Database) -> String {
+    database.accounts().get(id)
+    .expect(&format!("Account id {id} out of bounds"))
+    .as_ref()
+    .expect(&format!("Account (id={id}) is deleted"))
+    .name()
+    .to_string()
+  }
+
 }
 
 impl AddOrEditAccountDialog {
@@ -641,11 +632,11 @@ impl AddOrEditAccountDialog {
     self.id
   }
 
-  pub fn parent_account(&self) -> Option<&(usize, String)> {
-    self.parent_account.as_ref()
+  pub fn parent_account(&self) -> Option<usize> {
+    self.parent_account
   }
 
-  pub fn reference_accounts(&self) -> &BTreeMap<usize, String> {
+  pub fn reference_accounts(&self) -> &BTreeSet<usize> {
     &self.reference_accounts
   }
 

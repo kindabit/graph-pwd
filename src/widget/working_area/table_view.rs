@@ -245,7 +245,7 @@ impl TableView {
     .padding(style_variable.working_area_table_view_head_padding)
     .width(Length::Fill)
     .height(Length::Shrink)
-    .style(move |theme| {
+    .style(move |_theme| {
       iced::widget::container::Style {
         background: Some(StyleVariable::lock(&style_variable_closure).working_area_table_view_head_background),
         ..Default::default()
@@ -318,7 +318,7 @@ impl TableView {
           )
           .push(
             match account.password() {
-              Some(password) => {
+              Some(_password) => {
                 self.body_text_cell_common("******")
               }
               None => {
@@ -385,7 +385,7 @@ impl TableView {
         .padding(style_variable.working_area_table_view_body_padding)
         .width(Length::Fill)
         .height(Length::Shrink)
-        .style(move |theme| {
+        .style(move |_theme| {
           iced::widget::container::Style {
             background: Some(StyleVariable::lock(&style_variable_closure).working_area_table_view_body_background(index, deleted)),
             ..Default::default()
@@ -475,7 +475,7 @@ impl TableView {
     container(
       Text::new(s.into())
       .wrapping(Wrapping::None)
-      .style(move |theme| {
+      .style(move |_theme| {
         use iced::widget::text::Style;
         Style {
           color: Some(StyleVariable::lock(&style_variable).working_area_table_view_body_link_cell_text_color)

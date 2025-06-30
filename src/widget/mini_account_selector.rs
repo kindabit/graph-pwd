@@ -10,8 +10,8 @@ pub struct MiniAccountSelector {
 #[derive(Clone, Debug)]
 pub enum Message {
 
-  /// (id, detail)
-  OnRowClick(usize, String),
+  /// (id)
+  OnRowClick(usize),
 
 }
 
@@ -108,7 +108,7 @@ impl MiniAccountSelector {
             )
             .width(Length::Fill)
             .height(Length::Shrink)
-            .style(move |theme| {
+            .style(move |_theme| {
               let style_variable_closure = StyleVariable::lock(&style_variable_closure);
               if selected_account_id_set_closure.contains(&id_closure) {
                 iced::widget::container::Style {
@@ -121,7 +121,7 @@ impl MiniAccountSelector {
               }
             })
           )
-          .on_press(Message::OnRowClick(account.id(), account.name().to_string()))
+          .on_press(Message::OnRowClick(account.id()))
         )
       }
     }

@@ -1,11 +1,8 @@
 use std::sync::{Arc, Mutex};
 
 use iced::{widget::{button, row, text, toggler}, Alignment, Element, Length};
-use log::warn;
 
 use crate::{global_state::GlobalState, i18n::I18n, style_variable::StyleVariable};
-
-const MODULE_PATH: &str = module_path!();
 
 pub struct Header {
 }
@@ -23,29 +20,6 @@ pub enum Message {
 impl Header {
   pub fn new() -> Self {
     Self {
-    }
-  }
-
-  pub fn update(&mut self, message: Message) {
-    match message {
-      Message::OnTreeModeToggled(_toggled) => {
-        warn!("Event {MODULE_PATH}::Message::OnTreeModeToggled should be intercepted");
-      }
-      Message::OnNewButtonClicked => {
-        warn!("Event {MODULE_PATH}::Message::OnNewButtonClicked should be intercepted");
-      }
-      Message::OnLoadButtonClicked => {
-        warn!("Event {MODULE_PATH}::Message::OnLoadButtonClicked should be intercepted");
-      }
-      Message::OnSaveButtonClicked => {
-        warn!("Event {MODULE_PATH}::Message::OnSaveButtonClicked should be intercepted");
-      }
-      Message::OnSaveAsButtonClicked => {
-        warn!("Event {MODULE_PATH}::Message::OnSaveAsButtonClicked should be intercepted");
-      }
-      Message::OnDebugPrintDatabaseButtonClicked => {
-        warn!("Event {MODULE_PATH}::Message::OnDebugPrintDatabaseButtonClicked should be intercepted");
-      }
     }
   }
 

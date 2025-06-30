@@ -163,10 +163,6 @@ impl RootWidget {
             info!("{db:?}");
             Task::none()
           }
-          other => {
-            self.header.update(other);
-            Task::none()
-          }
         }
       }
 
@@ -177,7 +173,6 @@ impl RootWidget {
               self.add_or_edit_account_dialog = Some(widget::AddOrEditAccountDialog::new(
                 widget::AddOrEditAccountDialogMode::Add,
                 None,
-                database,
               ));
             }
             else if let widget::WorkingAreaTableViewMessage::OnAccountModifyPress(id) = msg {
@@ -188,7 +183,6 @@ impl RootWidget {
               self.add_or_edit_account_dialog = Some(widget::AddOrEditAccountDialog::new(
                 widget::AddOrEditAccountDialogMode::Edit,
                 Some(old_account),
-                database,
               ));
             }
             else {
@@ -247,10 +241,10 @@ impl RootWidget {
                       let mut new_account = Account::new(
                         database.accounts().len(),
                         add_or_edit_account_dialog.name().to_string(),
-                        add_or_edit_account_dialog.parent_account().map(|value| value.0)
+                        add_or_edit_account_dialog.parent_account(),
                       );
                       for ref_acc in add_or_edit_account_dialog.reference_accounts() {
-                        new_account.add_reference_account(*ref_acc.0);
+                        new_account.add_reference_account(*ref_acc);
                       }
                       new_account.set_service(add_or_edit_account_dialog.service().map(String::from));
                       new_account.set_login_name(add_or_edit_account_dialog.login_name().map(String::from));
@@ -330,12 +324,12 @@ impl RootWidget {
                       }
                       // then, rebuild children-parent relationship
                       if let Some(parent_account) = add_or_edit_account_dialog.parent_account() {
-                        old_account.set_parent_account(Some(parent_account.0));
+                        old_account.set_parent_account(Some(parent_account));
                         database.accounts_mut()
-                          .get_mut(parent_account.0)
-                          .expect(&format!("Parent account id ({}) out of bounds", parent_account.0))
+                          .get_mut(parent_account)
+                          .expect(&format!("Parent account id ({}) out of bounds", parent_account))
                           .as_mut()
-                          .expect(&format!("Parent account (id={}) is deleted", parent_account.0))
+                          .expect(&format!("Parent account (id={}) is deleted", parent_account))
                           .add_children_account(old_account_id);
                       }
                       else {
@@ -356,12 +350,12 @@ impl RootWidget {
                       old_account.clear_reference_accounts();
                       // finally, rebuild reference relationships
                       for reference_account in add_or_edit_account_dialog.reference_accounts() {
-                        old_account.add_reference_account(*reference_account.0);
+                        old_account.add_reference_account(*reference_account);
                         database.accounts_mut()
-                          .get_mut(*reference_account.0)
-                          .expect(&format!("Reference account id ({}) out of bounds", reference_account.0))
+                          .get_mut(*reference_account)
+                          .expect(&format!("Reference account id ({}) out of bounds", reference_account))
                           .as_mut()
-                          .expect(&format!("Reference account (id={}) is deleted", reference_account.0))
+                          .expect(&format!("Reference account (id={}) is deleted", reference_account))
                           .add_referenced_by_account(old_account_id);
                       }
 
