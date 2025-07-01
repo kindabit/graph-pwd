@@ -60,6 +60,7 @@ pub enum Message {
   PopupDialogMessage(widget::PopupDialogMessage),
   ConfirmDialogMessage(widget::ConfirmDialogMessage),
   AddOrEditAccountDialogMessage(widget::AddOrEditAccountDialogMessage),
+  AccountDetailDialogMessage(widget::AccountDetailDialogMessage),
 
   NewDatabase,
   NewDatabaseConfirmed,
@@ -102,6 +103,8 @@ struct RootWidget {
 
   add_or_edit_account_dialog: Option<widget::AddOrEditAccountDialog>,
 
+  account_detail_dialog: Option<widget::AccountDetailDialog>,
+
   header: widget::Header,
 
   working_area: widget::WorkingArea,
@@ -129,6 +132,8 @@ impl RootWidget {
       confirm_dialogs: Vec::new(),
 
       add_or_edit_account_dialog: None,
+
+      account_detail_dialog: None,
 
       header: widget::Header::new(),
 
@@ -166,6 +171,8 @@ impl RootWidget {
         }
       }
 
+      // wrapping:   TableViewMessage  -> WorkingAreaMessage -> RootWidgetMessage
+      // unwrapping: RootWidgetMessage -> WorkingAreaMessage -> TableViewMessage
       Message::WorkingAreaMessage(msg) => {
         if let widget::WorkingAreaMessage::TableViewMessage(msg) = msg {
           if let Some(database) = self.database.as_ref() {
@@ -184,6 +191,9 @@ impl RootWidget {
                 widget::AddOrEditAccountDialogMode::Edit,
                 Some(old_account),
               ));
+            }
+            else if let widget::WorkingAreaTableViewMessage::OnAccountDetailPress(id) = msg {
+              self.account_detail_dialog = Some(widget::AccountDetailDialog::new(id));
             }
             else {
               let repack = widget::WorkingAreaMessage::TableViewMessage(msg);
@@ -415,6 +425,15 @@ impl RootWidget {
         }
         else {
           panic!("received AddOrEditAccountDialogMessage while add_or_edit_account_dialog is None");
+        }
+        Task::none()
+      }
+
+      Message::AccountDetailDialogMessage(msg) => {
+        match msg {
+          widget::AccountDetailDialogMessage::OnCloseButtonPress => {
+            self.account_detail_dialog = None;
+          }
         }
         Task::none()
       }
@@ -654,6 +673,18 @@ impl RootWidget {
         last_confirm_dialog.view(&self.i18n).map(Message::ConfirmDialogMessage),
         Message::Noop
       )
+    }
+    else if let Some(account_detail_dialog) = self.account_detail_dialog.as_ref() {
+      if let Some(database) = self.database.as_ref() {
+        modal(
+          content,
+          account_detail_dialog.view(&self.i18n, database, &self.style_variable).map(Message::AccountDetailDialogMessage),
+          Message::Noop,
+        )
+      }
+      else {
+        panic!("database is None while account_detail_dialog is Some, which is meaningless, and shouldn't happen");
+      }
     }
     else if let Some(add_or_edit_account_dialog) = self.add_or_edit_account_dialog.as_ref() {
       if let Some(database) = self.database.as_ref() {

@@ -64,6 +64,14 @@ pub struct StyleVariable {
 
   pub add_or_edit_account_dialog_scroller_width: Pixels,
 
+  pub account_detail_dialog_content_padding: Padding,
+
+  pub account_detail_dialog_scrollbar_width: Pixels,
+
+  pub account_detail_dialog_scrollbar_margin: Pixels,
+
+  pub account_detail_dialog_scroller_width: Pixels,
+
 }
 
 impl StyleVariable {
@@ -170,6 +178,15 @@ impl StyleVariable {
       add_or_edit_account_dialog_scrollbar_width: Pixels(6_f32),
       add_or_edit_account_dialog_scroller_width: Pixels(6_f32),
       add_or_edit_account_dialog_scrollbar_margin: Pixels(6_f32),
+      account_detail_dialog_content_padding: Padding {
+        top: 6_f32,
+        right: 18_f32,
+        bottom: 6_f32,
+        left: 6_f32,
+      },
+      account_detail_dialog_scrollbar_width: Pixels(6_f32),
+      account_detail_dialog_scroller_width: Pixels(6_f32),
+      account_detail_dialog_scrollbar_margin: Pixels(6_f32),
     }
   }
 

@@ -1,6 +1,7 @@
 mod popup_dialog;
 mod confirm_dialog;
 mod add_or_edit_account_dialog;
+mod account_detail_dialog;
 mod header;
 mod working_area;
 mod status_bar;
@@ -16,6 +17,9 @@ pub use confirm_dialog::Message as ConfirmDialogMessage;
 pub use add_or_edit_account_dialog::AddOrEditAccountDialogMode;
 pub use add_or_edit_account_dialog::AddOrEditAccountDialog;
 pub use add_or_edit_account_dialog::Message as AddOrEditAccountDialogMessage;
+
+pub use account_detail_dialog::AccountDetailDialog;
+pub use account_detail_dialog::Message as AccountDetailDialogMessage;
 
 pub use header::Header;
 pub use header::Message as HeaderMessage;

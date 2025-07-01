@@ -30,6 +30,8 @@ pub enum Message {
     accounts_len: usize,
   },
 
+  OnAccountDetailPress(usize),
+
   OnAccountModifyPress(usize),
 
   OnAddAccountPress,
@@ -92,6 +94,9 @@ impl TableView {
         }
 
         self.cached_database_accounts_len = accounts_len;
+      }
+      Message::OnAccountDetailPress(_id) => {
+        warn!("Event {MODULE_PATH}::Message::OnAccountDetailPress should be intercepted");
       }
       Message::OnAccountModifyPress(_id) => {
         warn!("Event {MODULE_PATH}::Message::OnAccountModifyPress should be intercepted");
@@ -346,6 +351,7 @@ impl TableView {
               Row::new()
               .push(
                 Button::new(Text::new(i18n.translate("working_area.table_view.body.operation.detail")))
+                .on_press(Message::OnAccountDetailPress(account.id()))
               )
               .push(
                 Button::new(Text::new(i18n.translate("working_area.table_view.body.operation.modify")))
