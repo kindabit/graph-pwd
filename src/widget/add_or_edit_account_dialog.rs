@@ -368,6 +368,7 @@ impl AddOrEditAccountDialog {
         self.account_selector.view(
           database,
           &self.parent_account_search,
+          self.id,
           &[*parent_account],
           style_variable,
         )
@@ -376,6 +377,7 @@ impl AddOrEditAccountDialog {
         self.account_selector.view(
           database,
           &self.parent_account_search,
+          self.id,
           &[],
           style_variable,
         )
@@ -421,6 +423,7 @@ impl AddOrEditAccountDialog {
     let reference_accounts_selector = self.account_selector.view(
       database,
       &self.reference_accounts_search,
+          self.id,
       &reference_account_ids,
       style_variable,
     );
@@ -594,6 +597,15 @@ impl AddOrEditAccountDialog {
   }
 
   pub fn validate(&self) -> bool {
+    if let Some(self_id) = self.id {
+      if let Some(parent_id) = self.parent_account && self_id == parent_id {
+        panic!("Self referencing detected in parent account");
+      }
+      if self.reference_accounts.contains(&self_id) {
+        panic!("Self referencing detected in reference accounts");
+      }
+    }
+
     if self.name_error.is_some() {
       false
     }

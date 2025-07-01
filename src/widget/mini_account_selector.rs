@@ -22,7 +22,14 @@ impl MiniAccountSelector {
     }
   }
 
-  pub fn view(&self, database: &Database, filter: &str, selected_account_ids: &[usize], style_variable: &Arc<Mutex<StyleVariable>>) -> Element<Message> {
+  pub fn view(
+    &self,
+    database: &Database,
+    filter: &str,
+    exclude_account_id: Option<usize>,
+    selected_account_ids: &[usize],
+    style_variable: &Arc<Mutex<StyleVariable>>,
+  ) -> Element<Message> {
     let mut selected_account_id_set: HashSet<usize> = HashSet::with_capacity(selected_account_ids.len());
     selected_account_id_set.extend(selected_account_ids);
     let selected_account_id_set = Rc::new(selected_account_id_set);
@@ -37,6 +44,9 @@ impl MiniAccountSelector {
           continue;
         }
         let account = account.as_ref().unwrap();
+        if let Some(exclude_account_id) = exclude_account_id && exclude_account_id == account.id() {
+          continue;
+        }
         let matched = if account.name().to_lowercase().contains(&filter) {
           true
         }

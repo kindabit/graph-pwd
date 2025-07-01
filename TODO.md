@@ -11,5 +11,3 @@ delete
 filter
 
 beautify popup_dialog (different type has different style), confirm_dialog and add_or_edit_account_dialog
-
-setting self as child or referencing to self should not be allowed
