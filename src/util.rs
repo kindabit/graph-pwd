@@ -1,5 +1,6 @@
 mod byte_slice_reader;
 mod byte_vec_writer;
+pub mod account_util;
 
 use std::error::Error;
 

@@ -3,7 +3,7 @@ use std::{collections::{BTreeMap, BTreeSet}, sync::{Arc, Mutex}};
 use iced::{widget::{scrollable, Button, Column, Row, Scrollable, Space, Text, TextInput}, Alignment, Element, Length};
 use log::warn;
 
-use crate::{database::{account::Account, Database}, i18n::I18n, style_variable::StyleVariable};
+use crate::{database::{account::Account, Database}, i18n::I18n, style_variable::StyleVariable, util::account_util};
 
 use super::MiniAccountSelector;
 
@@ -346,11 +346,7 @@ impl AddOrEditAccountDialog {
     selected_parent_account_row = selected_parent_account_row.push(parent_account_label);
 
     if let Some(parent_account) = self.parent_account.as_ref() {
-      selected_parent_account_row = selected_parent_account_row.push(Text::new(format!(
-        "{}. {}",
-        parent_account,
-        self.get_account_detail(*parent_account, database),
-      )));
+      selected_parent_account_row = selected_parent_account_row.push(Text::new(account_util::get_account_short_form(*parent_account, database)));
 
       let clear_parent_account = Button::new(Text::new("X")).on_press(Message::OnClearParentAccountPress);
       selected_parent_account_row = selected_parent_account_row.push(clear_parent_account);
@@ -403,11 +399,7 @@ impl AddOrEditAccountDialog {
       form = form.push(
         Row::new()
         .push(
-          Text::new(format!(
-            "{}. {}",
-            reference_account,
-            self.get_account_detail(*reference_account, database),
-          ))
+          Text::new(account_util::get_account_short_form(*reference_account, database))
         )
         .push(
           Button::new(Text::new("X")).on_press(Message::OnClearReferenceAccountPress(*reference_account))
@@ -608,16 +600,6 @@ impl AddOrEditAccountDialog {
     else {
       true
     }
-  }
-
-  /// This should be the only place where "account detail" is defined
-  fn get_account_detail(&self, id: usize, database: &Database) -> String {
-    database.accounts().get(id)
-    .expect(&format!("Account id {id} out of bounds"))
-    .as_ref()
-    .expect(&format!("Account (id={id}) is deleted"))
-    .name()
-    .to_string()
   }
 
 }
