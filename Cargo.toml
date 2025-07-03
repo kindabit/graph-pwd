@@ -6,8 +6,12 @@ edition = "2024"
 [dependencies]
 iced = { git = "https://github.com/iced-rs/iced.git" }
 native-dialog = "0.9.0"
+# enable derive to use derived Serialize and Deserialize trait
 serde = { version = "1.0.219", features = [ "derive" ] }
 serde_yml = "0.0.12"
 chrono = "0.4.40"
 log = "0.4.26"
+# enable date-based to have date and time embedded in log file name
 fern = { version = "0.7.1", features = [ "date-based" ] }
+# enable std to convenient error processing
+aes-gcm-siv = { version = "0.11.1", features = [ "std" ] }

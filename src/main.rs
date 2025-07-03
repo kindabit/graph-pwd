@@ -61,16 +61,20 @@ pub enum Message {
   ConfirmDialogMessage(widget::ConfirmDialogMessage),
   AddOrEditAccountDialogMessage(widget::AddOrEditAccountDialogMessage),
   AccountDetailDialogMessage(widget::AccountDetailDialogMessage),
+  NewMainPasswordDialogMessage(widget::NewMainPasswordDialogMessage),
+  MainPasswordDialogMessage(widget::MainPasswordDialogMessage),
 
   NewDatabase,
   NewDatabaseConfirmed,
   NewDatabaseSelected(Option<String>),
+  NewDatabaseMainPasswordInputted(String),
   NewDatabaseSuccess,
   NewDatabaseFail(String),
 
   LoadDatabase,
   LoadDatabaseConfirmed,
   LoadDatabaseSelected(Option<String>),
+  LoadDatabaseMainPasswordInputted(String),
   LoadDatabaseSuccess,
   LoadDatabaseFail(String),
 
@@ -105,11 +109,18 @@ struct RootWidget {
 
   account_detail_dialog: Option<widget::AccountDetailDialog>,
 
+  new_main_password_dialog: Option<widget::NewMainPasswordDialog>,
+
+  main_password_dialog: Option<widget::MainPasswordDialog>,
+
   header: widget::Header,
 
   working_area: widget::WorkingArea,
 
   status_bar: widget::StatusBar,
+
+  // todo: this is awkward
+  temp_password: String,
 
 }
 
@@ -135,11 +146,17 @@ impl RootWidget {
 
       account_detail_dialog: None,
 
+      new_main_password_dialog: None,
+
+      main_password_dialog: None,
+
       header: widget::Header::new(),
 
       working_area: widget::WorkingArea::new(),
 
       status_bar: widget::StatusBar::new(),
+
+      temp_password: String::new(),
     }
   }
 
@@ -438,6 +455,66 @@ impl RootWidget {
         Task::none()
       }
 
+      Message::NewMainPasswordDialogMessage(msg) => {
+        match &mut self.new_main_password_dialog {
+          Some(new_main_password_dialog) => {
+            match msg {
+              widget::NewMainPasswordDialogMessage::OnConfirmButtonPress => {
+                if new_main_password_dialog.validate() {
+                  let (next_msg, password) = self.new_main_password_dialog.take().unwrap().into_on_confirm_message();
+                  self.temp_password = password;
+                  self.update(next_msg)
+                }
+                else {
+                  Task::none()
+                }
+              }
+              widget::NewMainPasswordDialogMessage::OnCancelButtonPress => {
+                let next_msg = self.new_main_password_dialog.take().unwrap().into_on_cancel_message();
+                self.update(next_msg)
+              },
+              other => {
+                new_main_password_dialog.update(other);
+                Task::none()
+              }
+            }
+          }
+          None => {
+            panic!("received NewMainPasswordDialogMessage while new_main_password_dialog is None");
+          }
+        }
+      }
+
+      Message::MainPasswordDialogMessage(msg) => {
+        match &mut self.main_password_dialog {
+          Some(main_password_dialog) => {
+            match msg {
+              widget::MainPasswordDialogMessage::OnConfirmButtonPress => {
+                if main_password_dialog.validate() {
+                  let (next_msg, password) = self.main_password_dialog.take().unwrap().into_on_confirm_message();
+                  self.temp_password = password;
+                  self.update(next_msg)
+                }
+                else {
+                  Task::none()
+                }
+              }
+              widget::MainPasswordDialogMessage::OnCancelButtonPress => {
+                let next_msg = self.main_password_dialog.take().unwrap().into_on_cancel_message();
+                self.update(next_msg)
+              },
+              other => {
+                main_password_dialog.update(other);
+                Task::none()
+              }
+            }
+          }
+          None => {
+            panic!("received MainPasswordDialogMessage while main_password_dialog is None");
+          }
+        }
+      }
+
       Message::NewDatabase => {
         if self.database.is_some() {
           self.add_confirm_dialog(
@@ -466,22 +543,31 @@ impl RootWidget {
       Message::NewDatabaseSelected(path) => {
         match path {
           Some(path) => {
-            self.database = Some(Database::new(path));
-            let db = self.database.as_mut().unwrap();
-
-            let account_1 = Account::new(0, "Sample Account 1".to_string(), None);
-            let mut account_2 = Account::new(1, "Sample Account 2".to_string(), None);
-            account_2.add_children_account(2);
-            let account_3 = Account::new(2, "Sample Child Account 1".to_string(), Some(1));
-
-            db.add_account(account_1);
-            db.add_account(account_2);
-            db.add_account(account_3);
-
-            self.update(Message::NewDatabaseSuccess)
-          },
-          None => Task::none()
+            self.new_main_password_dialog = Some(widget::NewMainPasswordDialog::new(
+              Message::NewDatabaseMainPasswordInputted(path),
+              Message::Noop,
+            ));
+          }
+          None => {
+          }
         }
+        Task::none()
+      }
+
+      Message::NewDatabaseMainPasswordInputted(path) => {
+        self.database = Some(Database::new(path, self.temp_password.clone()));
+        let db = self.database.as_mut().unwrap();
+
+        let account_1 = Account::new(0, "Sample Account 1".to_string(), None);
+        let mut account_2 = Account::new(1, "Sample Account 2".to_string(), None);
+        account_2.add_children_account(2);
+        let account_3 = Account::new(2, "Sample Child Account 1".to_string(), Some(1));
+
+        db.add_account(account_1);
+        db.add_account(account_2);
+        db.add_account(account_3);
+
+        self.update(Message::NewDatabaseSuccess)
       }
 
       Message::NewDatabaseSuccess => {
@@ -530,16 +616,25 @@ impl RootWidget {
 
       Message::LoadDatabaseSelected(path) => {
         match path {
-          Some(path) =>
-            match Database::load(path) {
-              Ok(database) => {
-                self.database = Some(database);
-                self.update(Message::LoadDatabaseSuccess)
-              },
-              Err(err) => self.update(Message::LoadDatabaseFail(err.to_string())),
-            }
-          ,
-          None => Task::none()
+          Some(path) => {
+            self.main_password_dialog = Some(widget::MainPasswordDialog::new(
+              Message::LoadDatabaseMainPasswordInputted(path),
+              Message::Noop,
+            ));
+          }
+          None => {
+          }
+        }
+        Task::none()
+      }
+
+      Message::LoadDatabaseMainPasswordInputted(path) => {
+        match Database::load(path, self.temp_password.clone(), &self.i18n) {
+          Ok(database) => {
+            self.database = Some(database);
+            self.update(Message::LoadDatabaseSuccess)
+          },
+          Err(err) => self.update(Message::LoadDatabaseFail(err.to_string())),
         }
       }
 
@@ -563,8 +658,8 @@ impl RootWidget {
       }
 
       Message::SaveDatabase => {
-        if let Some(database) = &self.database {
-          match database.save() {
+        if let Some(database) = &mut self.database {
+          match database.save(&self.i18n) {
             Ok(_) => {
               self.add_popup_dialog(
                 self.i18n.translate("popup_dialog.title.save_database_success"),
@@ -614,7 +709,7 @@ impl RootWidget {
       Message::SaveAsDatabaseSelected(path) => {
         match path {
           Some(path) => {
-            match self.database.as_mut().expect("`self.database` should be `Some` in `Message::SaveAsDatabaseSelected`").save_as(path) {
+            match self.database.as_mut().expect("`self.database` should be `Some` in `Message::SaveAsDatabaseSelected`").save_as(path, &self.i18n) {
               Ok(_) => self.update(Message::SaveAsDatabaseSuccess),
               Err(err) => self.update(Message::SaveAsDatabaseFail(err.to_string())),
             }
@@ -697,6 +792,20 @@ impl RootWidget {
       else {
         panic!("database is None while add_or_edit_account_dialog is Some, which is meaningless, and shouldn't happen");
       }
+    }
+    else if let Some(new_main_password_dialog) = &self.new_main_password_dialog {
+      modal(
+        content,
+        new_main_password_dialog.view(&self.i18n).map(Message::NewMainPasswordDialogMessage),
+        Message::Noop,
+      )
+    }
+    else if let Some(main_password_dialog) = &self.main_password_dialog {
+      modal(
+        content,
+        main_password_dialog.view(&self.i18n).map(Message::MainPasswordDialogMessage),
+        Message::Noop,
+      )
     }
     else {
       content.into()
