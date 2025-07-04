@@ -1,4 +1,4 @@
-use iced::{widget::{button, column, text}, Element};
+use iced::{widget::{Button, Column, Text}, Element};
 
 use crate::i18n::I18n;
 
@@ -45,18 +45,18 @@ impl PopupDialog {
   }
 
   pub fn view(&self, i18n: &I18n) -> Element<Message> {
-    let title = text(i18n.translate(&self.title));
+    let title = Text::new(&self.title);
 
-    let content = text(i18n.translate(&self.content));
+    let content = Text::new(&self.content);
 
-    let ok_button = button(text(i18n.translate("popup_dialog.ok_button")))
+    let ok_button = Button::new(Text::new(i18n.translate("popup_dialog.ok_button")))
       .on_press(Message::OnOkButtonPress(self.id));
 
-    column![
-      title,
-      content,
-      ok_button,
-    ].into()
+    Column::new()
+    .push(title)
+    .push(content)
+    .push(ok_button)
+    .into()
   }
 
 }

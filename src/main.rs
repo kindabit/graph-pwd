@@ -413,15 +413,15 @@ impl RootWidget {
                   match add_or_edit_account_dialog.mode() {
                     widget::AddOrEditAccountDialogMode::Add => {
                       self.add_popup_dialog(
-                        "popup_dialog.title.fail_to_add_account",
-                        "popup_dialog.content.fail_to_add_account",
+                        self.i18n.translate("popup_dialog.title.fail_to_add_account"),
+                        self.i18n.translate("popup_dialog.content.fail_to_add_account"),
                         widget::PopupDialogType::Warning,
                       )
                     }
                     widget::AddOrEditAccountDialogMode::Edit => {
                       self.add_popup_dialog(
-                        "popup_dialog.title.fail_to_edit_account",
-                        "popup_dialog.content.fail_to_edit_account",
+                        self.i18n.translate("popup_dialog.title.fail_to_edit_account"),
+                        self.i18n.translate("popup_dialog.content.fail_to_edit_account"),
                         widget::PopupDialogType::Warning,
                       )
                     }

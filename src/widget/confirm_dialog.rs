@@ -1,4 +1,4 @@
-use iced::{widget::{button, column, row, text}, Element};
+use iced::{widget::{Button, Column, Row, Text}, Element};
 
 use crate::i18n::I18n;
 
@@ -44,24 +44,25 @@ impl ConfirmDialog {
   }
 
   pub fn view(&self, i18n: &I18n) -> Element<Message> {
-    let title = text(&self.title);
+    let title = Text::new(&self.title);
 
-    let content = text(&self.content);
+    let content = Text::new(&self.content);
 
-    let confirm_button = button(text(i18n.translate("confirm_dialog.confirm_button")))
+    let confirm_button = Button::new(Text::new(i18n.translate("confirm_dialog.confirm_button")))
       .on_press(Message::OnConfirmButtonPress(self.id));
 
-    let cancel_button = button(text(i18n.translate("confirm_dialog.cancel_button")))
+    let cancel_button = Button::new(Text::new(i18n.translate("confirm_dialog.cancel_button")))
       .on_press(Message::OnCancelButtonPress(self.id));
 
-    column![
-      title,
-      content,
-      row![
-        confirm_button,
-        cancel_button,
-      ],
-    ].into()
+    Column::new()
+    .push(title)
+    .push(content)
+    .push(
+      Row::new()
+      .push(confirm_button)
+      .push(cancel_button)
+    )
+    .into()
   }
 
   pub fn into_on_confirm_message(self) -> crate::Message {
