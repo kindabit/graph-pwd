@@ -8,8 +8,6 @@ delete
 
 filter
 
-log panic
-
 create backup before loading a database
 
 beautify popup_dialog (different type has different style), confirm_dialog and add_or_edit_account_dialog
@@ -17,3 +15,5 @@ beautify popup_dialog (different type has different style), confirm_dialog and a
 show nonce counter and max nonce number
 
 AppError::to_string() should output cause
+
+set up CI pipeline on github
