@@ -8,8 +8,6 @@ delete
 
 filter
 
-save database when creating database
-
 log panic
 
 create backup before loading a database

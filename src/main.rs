@@ -555,8 +555,7 @@ impl RootWidget {
       }
 
       Message::NewDatabaseMainPasswordInputted(path) => {
-        self.database = Some(Database::new(path, self.temp_password.clone()));
-        let db = self.database.as_mut().unwrap();
+        let mut db = Database::new(path, self.temp_password.clone());
 
         let account_1 = Account::new(0, "Sample Account 1".to_string(), None);
         let mut account_2 = Account::new(1, "Sample Account 2".to_string(), None);
@@ -567,7 +566,15 @@ impl RootWidget {
         db.add_account(account_2);
         db.add_account(account_3);
 
-        self.update(Message::NewDatabaseSuccess)
+        match db.save(&self.i18n) {
+          Ok(_) => {
+            self.database = Some(db);
+            self.update(Message::NewDatabaseSuccess)
+          }
+          Err(err) => {
+            self.update(Message::NewDatabaseFail(err.to_string()))
+          }
+        }
       }
 
       Message::NewDatabaseSuccess => {
