@@ -196,8 +196,7 @@ impl AddOrEditAccountDialog {
         }
       }
       Message::OnNameInputInput(value) => {
-        let value = value.trim();
-        self.name = value.to_string();
+        self.name = value;
         if self.name.len() == 0 {
           self.name_error = Some(NameError::Empty);
         }
@@ -206,55 +205,50 @@ impl AddOrEditAccountDialog {
         }
       }
       Message::OnServiceInputInput(value) => {
-        let value = value.trim();
         if value.len() == 0 {
           self.service = None;
         }
         else {
-          self.service = Some(value.to_string())
+          self.service = Some(value)
         }
       }
       Message::OnLoginNameInputInput(value) => {
-        let value = value.trim();
         if value.len() == 0 {
           self.login_name = None;
         }
         else {
-          self.login_name = Some(value.to_string())
+          self.login_name = Some(value)
         }
       }
       Message::OnPasswordInputInput(value) => {
-        let value = value.trim();
         if value.len() == 0 {
           self.password = None;
         }
         else {
-          self.password = Some(value.to_string())
+          self.password = Some(value)
         }
       }
       Message::OnCommentInputInput(value) => {
-        let value = value.trim();
         if value.len() == 0 {
           self.comment = None;
         }
         else {
-          self.comment = Some(value.to_string())
+          self.comment = Some(value)
         }
       }
       Message::OnRemoveCustomFieldPress(field_name) => {
         self.custom_fields.remove(&field_name);
       }
       Message::OnCustomFieldNameInputInput(value) => {
-        let value = value.trim();
-        self.custom_field_name = value.to_string();
+        self.custom_field_name = value;
       }
       Message::OnCustomFieldValueInputInput(value) => {
-        let value = value.trim();
-        self.custom_field_value = value.to_string();
+        self.custom_field_value = value;
       }
       Message::OnAddCustomFieldPress => {
-        if self.custom_field_name.len() > 0 {
-          self.custom_fields.insert(self.custom_field_name.clone(), self.custom_field_value.clone());
+        let custom_field_name = self.custom_field_name.trim();
+        if custom_field_name.len() > 0 {
+          self.custom_fields.insert(custom_field_name.to_string(), self.custom_field_value.clone());
         }
       }
       Message::OnConfirmButtonPress => {
@@ -596,7 +590,10 @@ impl AddOrEditAccountDialog {
     form
   }
 
-  pub fn validate(&self) -> bool {
+  /// use `&mut self` because need to trim string before validating
+  pub fn validate(&mut self) -> bool {
+    self.trim_fields();
+
     if let Some(self_id) = self.id {
       if let Some(parent_id) = self.parent_account && self_id == parent_id {
         panic!("Self referencing detected in parent account");
@@ -611,6 +608,16 @@ impl AddOrEditAccountDialog {
     }
     else {
       true
+    }
+  }
+
+  fn trim_fields(&mut self) {
+    self.name = self.name.trim().to_string();
+    if self.name.len() == 0 {
+      self.name_error = Some(NameError::Empty);
+    }
+    else {
+      self.name_error = None;
     }
   }
 

@@ -2,8 +2,6 @@ access violation when drag resizing window
 
 access violation when closing window
 
-allow spaces in the middle of name, password, server, etc.
-
 delete
 
 filter
@@ -17,3 +15,5 @@ show nonce counter and max nonce number
 AppError::to_string() should output cause
 
 set up CI pipeline on github
+
+select and change language
