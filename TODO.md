@@ -10,8 +10,6 @@ filter
 
 save database when creating database
 
-limit the max length of main password to 32 (aes256 requires 256bit key)
-
 log panic
 
 create backup before loading a database

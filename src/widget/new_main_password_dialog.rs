@@ -5,11 +5,15 @@ use crate::{i18n::I18n, util::account_util};
 
 const MODULE_PATH: &str = module_path!();
 
+const MAX_PASSWORD_LEN: usize = 32;
+
 enum PasswordError {
 
   TooWeak,
 
   Empty,
+
+  TooLong,
 
 }
 
@@ -71,6 +75,9 @@ impl NewMainPasswordDialog {
         else if account_util::is_weak_password(&self.password) {
           self.password_error = Some(PasswordError::TooWeak);
         }
+        else if self.password.len() > MAX_PASSWORD_LEN {
+          self.password_error = Some(PasswordError::TooLong);
+        }
         else {
           self.password_error = None;
         }
@@ -123,6 +130,7 @@ impl NewMainPasswordDialog {
             match err {
               PasswordError::Empty => i18n.translate("new_main_password_dialog.empty_password"),
               PasswordError::TooWeak => i18n.translate("new_main_password_dialog.weak_password"),
+              PasswordError::TooLong => i18n.translate("new_main_password_dialog.password_too_long"),
             }
           },
           None => "".to_string(),
@@ -176,6 +184,7 @@ impl NewMainPasswordDialog {
       match err {
         PasswordError::TooWeak => {},
         PasswordError::Empty => return false,
+        PasswordError::TooLong => return false,
       }
     }
     if let Some(err) = &self.repeat_password_error {
