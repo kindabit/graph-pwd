@@ -1,16 +1,25 @@
-use std::{cmp::min, sync::{Arc, Mutex}};
+use std::{cell::RefCell, cmp::min, rc::Rc, sync::{Arc, Mutex}};
 
-use iced::{widget::{container, scrollable, text::Wrapping, Button, Column, Container, PickList, Row, Space, Text, TextInput}, Alignment, Element, Length};
+use iced::{widget::{container, scrollable, text::Wrapping, Button, Checkbox, Column, Container, PickList, Row, Space, Text, TextInput}, Alignment, Element, Length};
 use log::warn;
 
-use crate::{database::Database, i18n::I18n, style_variable::{StyleVariable}};
+use crate::{database::{account::Account, Database}, i18n::I18n, style_variable::StyleVariable};
 
 const MODULE_PATH: &str = module_path!();
 
 pub struct TableView {
 
+  database: Rc<RefCell<Option<Database>>>,
+
+  filter: String,
+
+  applied_filter: String,
+
+  hide_deleted_accounts: bool,
+
   total_page_no: usize,
 
+  /// Starts from 1
   page_no: usize,
 
   page_size: usize,
@@ -19,16 +28,18 @@ pub struct TableView {
 
   jump_to_page_no: usize,
 
-  cached_database_accounts_len: usize,
-
 }
 
 #[derive(Clone, Debug)]
 pub enum Message {
 
-  DatabaseUpdated {
-    accounts_len: usize,
-  },
+  DatabaseUpdated,
+
+  OnFilterInputInput(String),
+
+  OnFilterInputEnter,
+
+  OnHideDeletedAccountsToggle(bool),
 
   OnAccountDetailPress(usize),
 
@@ -64,36 +75,35 @@ impl TableView {
     Length::Fixed(224_f32),
   ];
 
-  pub fn new() -> Self {
+  pub fn new(database: Rc<RefCell<Option<Database>>>) -> Self {
     Self {
+      database,
+      filter: String::new(),
+      applied_filter: String::new(),
+      hide_deleted_accounts: true,
       page_no: 1,
       total_page_no: 1,
       page_size: 10,
       available_page_size: [10, 20, 30, 40, 50],
       jump_to_page_no: 1,
-      cached_database_accounts_len: 1,
     }
   }
 
   pub fn update(&mut self, message: Message) {
     match message {
-      Message::DatabaseUpdated { accounts_len } => {
-        // validate page number & jump to page number
-        if (self.page_no - 1) * self.page_size >= accounts_len {
-          self.page_no = 1;
-        }
-        if (self.jump_to_page_no - 1) * self.page_size >= accounts_len {
-          self.jump_to_page_no = 1;
-        }
-        // update total page number
-        if accounts_len == 0 {
-          self.total_page_no = 1;
-        }
-        else {
-          self.total_page_no = (accounts_len - 1) / self.page_size + 1;
-        }
-
-        self.cached_database_accounts_len = accounts_len;
+      Message::DatabaseUpdated => {
+        self.reset_page();
+      }
+      Message::OnFilterInputInput(filter) => {
+        self.filter = filter;
+      }
+      Message::OnFilterInputEnter => {
+        self.applied_filter = self.filter.trim().to_lowercase();
+        self.reset_page();
+      }
+      Message::OnHideDeletedAccountsToggle(value) => {
+        self.hide_deleted_accounts = value;
+        self.reset_page();
       }
       Message::OnAccountDetailPress(_id) => {
         warn!("Event {MODULE_PATH}::Message::OnAccountDetailPress should be intercepted");
@@ -106,21 +116,7 @@ impl TableView {
       }
       Message::OnPageSizeSelect(new_page_size) => {
         self.page_size = new_page_size;
-
-        // validate page number & jump to page number (same logic as Message::DatabaseUpdated)
-        if (self.page_no - 1) * self.page_size >= self.cached_database_accounts_len {
-          self.page_no = 1;
-        }
-        if (self.jump_to_page_no - 1) * self.page_size >= self.cached_database_accounts_len {
-          self.jump_to_page_no = 1;
-        }
-        // update total page number (same logic as Message::DatabaseUpdated)
-        if self.cached_database_accounts_len == 0 {
-          self.total_page_no = 1;
-        }
-        else {
-          self.total_page_no = (self.cached_database_accounts_len - 1) / self.page_size + 1;
-        }
+        self.reset_page();
       }
       Message::OnPrevPress => {
         if self.page_no > 1 {
@@ -157,7 +153,9 @@ impl TableView {
   }
 
   pub fn view(&self, i18n: &I18n, database: &Database, style_variable: &Arc<Mutex<StyleVariable>>) -> Element<Message> {
-    let mut table = Column::new().push(self.head(i18n, style_variable));
+    let mut table = Column::new()
+      .push(self.search_box(i18n, style_variable))
+      .push(self.head(i18n, style_variable));
 
     let mut body = Column::new();
     for row in self.body(i18n, database, style_variable) {
@@ -191,6 +189,40 @@ impl TableView {
     .width(Length::Fill)
     .height(Length::Fill)
     .into()
+  }
+
+  fn search_box(&self, i18n: &I18n, style_variable: &Arc<Mutex<StyleVariable>>) -> Row<Message> {
+    Row::new()
+    .push(
+      Text::new(i18n.translate("working_area.table_view.search_box.filter"))
+    )
+    .push(
+      TextInput::new(&i18n.translate("working_area.table_view.search_box.filter_placeholder"), &self.filter)
+      .on_input(Message::OnFilterInputInput)
+      .on_paste(Message::OnFilterInputInput)
+      .on_submit(Message::OnFilterInputEnter)
+      .width(Length::FillPortion(1_u16))
+    )
+    .push(
+      Space::new(
+        { StyleVariable::lock(style_variable).working_area_table_view_search_box_middle_space_width },
+        Length::Fixed(1_f32)
+      )
+    )
+    .push(
+      Text::new(i18n.translate("working_area.table_view.search_box.applied_filter"))
+    )
+    .push(
+      Text::new(&self.applied_filter)
+      .width(Length::FillPortion(1_u16))
+    )
+    .push(
+      Checkbox::new(i18n.translate("working_area.table_view.search_box.hide_deleted_accounts"), self.hide_deleted_accounts)
+      .on_toggle(Message::OnHideDeletedAccountsToggle)
+    )
+    .width(Length::Fill)
+    .align_y(Alignment::Center)
+    .padding({ StyleVariable::lock(style_variable).working_area_table_view_search_box_padding })
   }
 
   fn head(&self, i18n: &I18n, style_variable: &Arc<Mutex<StyleVariable>>) -> Container<Message> {
@@ -260,11 +292,12 @@ impl TableView {
 
   fn body(&self, i18n: &I18n, database: &Database, style_variable: &Arc<Mutex<StyleVariable>>) -> Vec<Container<Message>> {
     let page_start = (self.page_no - 1) * self.page_size;
-    let page_end = min(page_start + self.page_size, database.accounts().len());
+    let page_end = min(page_start + self.page_size, self.get_filtered_accounts_iter(database.accounts()).count());
+    let real_page_size = page_end - page_start;
 
     let mut rows = Vec::new();
 
-    for (index, account) in database.accounts()[page_start..page_end].iter().enumerate() {
+    for (index, account) in self.get_filtered_accounts_iter(database.accounts()).skip(page_start).take(real_page_size) {
       let row = match account.as_ref() {
         Some(account) => {
           let row = Row::new()
@@ -492,4 +525,59 @@ impl TableView {
     .align_y(Alignment::Center)
     .clip(true)
   }
+
+  fn reset_page(&mut self) {
+    self.page_no = 1;
+    self.jump_to_page_no = 1;
+    if let Some(db) = self.database.borrow().as_ref() {
+      let len = self.get_filtered_accounts_iter(db.accounts()).count();
+      if len == 0 {
+        self.total_page_no = 1;
+      }
+      else {
+        self.total_page_no = (len - 1) / self.page_size + 1;
+      }
+    }
+    else {
+      self.total_page_no = 1;
+    }
+  }
+
+  fn get_filtered_accounts_iter<'a, 'b>(&'a self, accounts: &'b Vec<Option<Account>>) -> impl Iterator<Item = (usize, &'b Option<Account>)> {
+    accounts.iter()
+    .enumerate()
+    .filter(|(_index, account)| {
+      if let Some(account) = account {
+        if self.applied_filter.len() == 0 {
+          true
+        }
+        else if account.name().to_lowercase().contains(&self.applied_filter) {
+          true
+        }
+        else if let Some(service) = account.service() && service.to_lowercase().contains(&self.applied_filter) {
+          true
+        }
+        else if let Some(login_name) = account.login_name() && login_name.to_lowercase().contains(&self.applied_filter) {
+          true
+        }
+        else {
+          false
+        }
+      }
+      else {
+        if self.hide_deleted_accounts {
+          false
+        }
+        else {
+          if self.applied_filter.len() > 0 {
+            false
+          }
+          else {
+            true
+          }
+        }
+      }
+    })
+  }
+
 }

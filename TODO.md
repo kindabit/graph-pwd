@@ -2,9 +2,11 @@ access violation when drag resizing window
 
 access violation when closing window
 
+setting a child as parent should not be allowed
+
 delete
 
-filter
+filter (need to test "Hide Deleted Accounts")
 
 create backup before loading a database
 
@@ -17,3 +19,5 @@ AppError::to_string() should output cause
 set up CI pipeline on github
 
 select and change language
+
+optimize the message route of WorkingArea and TableView (route DatabaseUpdate to TreeView or TableView based on tree_mode)

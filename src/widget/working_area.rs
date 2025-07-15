@@ -1,7 +1,7 @@
 pub mod table_view;
 pub mod tree_view;
 
-use std::sync::{Arc, Mutex};
+use std::{cell::RefCell, rc::Rc, sync::{Arc, Mutex}};
 
 use iced::{widget::{container, text}, Alignment, Element, Length};
 
@@ -11,6 +11,8 @@ pub struct WorkingArea {
 
   table_view: TableView,
 
+  database: Rc<RefCell<Option<Database>>>,
+
 }
 
 #[derive(Clone, Debug)]
@@ -18,16 +20,15 @@ pub enum Message {
 
   TableViewMessage(table_view::Message),
 
-  DatabaseUpdated {
-    accounts_len: usize,
-  },
+  DatabaseUpdated,
 
 }
 
 impl WorkingArea {
-  pub fn new() -> Self {
+  pub fn new(database: Rc<RefCell<Option<Database>>>) -> Self {
     Self {
-      table_view: TableView::new(),
+      table_view: TableView::new(database.clone()),
+      database: database.clone(),
     }
   }
 
@@ -36,16 +37,16 @@ impl WorkingArea {
       Message::TableViewMessage(msg) => {
         self.table_view.update(msg)
       }
-      Message::DatabaseUpdated { accounts_len } => {
-        self.table_view.update(table_view::Message::DatabaseUpdated { accounts_len })
+      Message::DatabaseUpdated => {
+        self.table_view.update(table_view::Message::DatabaseUpdated)
       }
     }
   }
 
-  pub fn view(&self, i18n: &I18n, database: Option<&Database>, global_state: &GlobalState, style_variable: &Arc<Mutex<StyleVariable>>) -> Element<Message> {
+  pub fn view(&self, i18n: &I18n, global_state: &GlobalState, style_variable: &Arc<Mutex<StyleVariable>>) -> Element<Message> {
     let tree_mode = global_state.tree_mode();
 
-    let container =  match database {
+    let container =  match self.database.borrow().as_ref() {
       Some(database) => {
         container(self.table_view.view(i18n, database, style_variable).map(Message::TableViewMessage))
         .width(Length::Fill)

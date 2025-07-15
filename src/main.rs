@@ -8,7 +8,7 @@ mod style_variable;
 mod database;
 mod widget;
 
-use std::{error::Error, sync::{Arc, Mutex}};
+use std::{cell::RefCell, error::Error, rc::Rc, sync::{Arc, Mutex}};
 
 use config::Config;
 use i18n::I18n;
@@ -99,7 +99,7 @@ struct RootWidget {
 
   style_variable: Arc<Mutex<StyleVariable>>,
 
-  database: Option<Database>,
+  database: Rc<RefCell<Option<Database>>>,
 
   popup_dialogs: Vec<widget::PopupDialog>,
 
@@ -127,6 +127,8 @@ struct RootWidget {
 impl RootWidget {
 
   pub fn new(config: Config, i18n: I18n) -> Self {
+    let database = Rc::new(RefCell::new(None));
+
     Self {
       config,
 
@@ -136,7 +138,7 @@ impl RootWidget {
 
       style_variable: Arc::new(Mutex::new(StyleVariable::new())),
 
-      database: None,
+      database: database.clone(),
 
       popup_dialogs: Vec::new(),
 
@@ -152,9 +154,9 @@ impl RootWidget {
 
       header: widget::Header::new(),
 
-      working_area: widget::WorkingArea::new(),
+      working_area: widget::WorkingArea::new(database.clone()),
 
-      status_bar: widget::StatusBar::new(),
+      status_bar: widget::StatusBar::new(database.clone()),
 
       temp_password: String::new(),
     }
@@ -192,14 +194,19 @@ impl RootWidget {
       // unwrapping: RootWidgetMessage -> WorkingAreaMessage -> TableViewMessage
       Message::WorkingAreaMessage(msg) => {
         if let widget::WorkingAreaMessage::TableViewMessage(msg) = msg {
-          if let Some(database) = self.database.as_ref() {
-            if let widget::WorkingAreaTableViewMessage::OnAddAccountPress = msg {
+          if let widget::WorkingAreaTableViewMessage::OnAddAccountPress = msg {
+            if let Some(_) = self.database.borrow().as_ref() {
               self.add_or_edit_account_dialog = Some(widget::AddOrEditAccountDialog::new(
                 widget::AddOrEditAccountDialogMode::Add,
                 None,
               ));
             }
-            else if let widget::WorkingAreaTableViewMessage::OnAccountModifyPress(id) = msg {
+            else {
+              panic!("received WorkingAreaTableViewMessage::OnAddAccountPress while database is None");
+            }
+          }
+          else if let widget::WorkingAreaTableViewMessage::OnAccountModifyPress(id) = msg {
+            if let Some(database) = self.database.borrow().as_ref() {
               let old_account = database.accounts().get(id)
                 .expect(&format!("Old account id ({id}) out of bounds"))
                 .as_ref()
@@ -209,16 +216,21 @@ impl RootWidget {
                 Some(old_account),
               ));
             }
-            else if let widget::WorkingAreaTableViewMessage::OnAccountDetailPress(id) = msg {
+            else {
+              panic!("received WorkingAreaTableViewMessage::OnAccountModifyPress while database is None");
+            }
+          }
+          else if let widget::WorkingAreaTableViewMessage::OnAccountDetailPress(id) = msg {
+            if let Some(_) = self.database.borrow().as_ref() {
               self.account_detail_dialog = Some(widget::AccountDetailDialog::new(id));
             }
             else {
-              let repack = widget::WorkingAreaMessage::TableViewMessage(msg);
-              self.working_area.update(repack);
+              panic!("received WorkingAreaTableViewMessage::OnAccountDetailPress while database is None");
             }
           }
           else {
-            panic!("received WorkingAreaMessage::TableViewMessage while database is None");
+            let repack = widget::WorkingAreaMessage::TableViewMessage(msg);
+            self.working_area.update(repack);
           }
         }
         else {
@@ -258,10 +270,10 @@ impl RootWidget {
 
       Message::AddOrEditAccountDialogMessage(msg) => {
         if let Some(add_or_edit_account_dialog) = self.add_or_edit_account_dialog.as_mut() {
-          if let Some(database) = self.database.as_mut() {
-            match msg {
-              widget::AddOrEditAccountDialogMessage::OnConfirmButtonPress => {
-                if add_or_edit_account_dialog.validate() {
+          match msg {
+            widget::AddOrEditAccountDialogMessage::OnConfirmButtonPress => {
+              if add_or_edit_account_dialog.validate() {
+                if let Some(database) = self.database.borrow_mut().as_mut() {
                   match add_or_edit_account_dialog.mode() {
                     widget::AddOrEditAccountDialogMode::Add => {
                       // create new account
@@ -406,38 +418,38 @@ impl RootWidget {
                       }
                     }
                   }
-                  self.add_or_edit_account_dialog = None;
-                  self.broadcast_database_update();
                 }
                 else {
-                  match add_or_edit_account_dialog.mode() {
-                    widget::AddOrEditAccountDialogMode::Add => {
-                      self.add_popup_dialog(
-                        self.i18n.translate("popup_dialog.title.fail_to_add_account"),
-                        self.i18n.translate("popup_dialog.content.fail_to_add_account"),
-                        widget::PopupDialogType::Warning,
-                      )
-                    }
-                    widget::AddOrEditAccountDialogMode::Edit => {
-                      self.add_popup_dialog(
-                        self.i18n.translate("popup_dialog.title.fail_to_edit_account"),
-                        self.i18n.translate("popup_dialog.content.fail_to_edit_account"),
-                        widget::PopupDialogType::Warning,
-                      )
-                    }
+                  panic!("received AddOrEditAccountDialogMessage while database is None");
+                }
+                self.add_or_edit_account_dialog = None;
+                self.broadcast_database_update();
+              }
+              else {
+                match add_or_edit_account_dialog.mode() {
+                  widget::AddOrEditAccountDialogMode::Add => {
+                    self.add_popup_dialog(
+                      self.i18n.translate("popup_dialog.title.fail_to_add_account"),
+                      self.i18n.translate("popup_dialog.content.fail_to_add_account"),
+                      widget::PopupDialogType::Warning,
+                    )
+                  }
+                  widget::AddOrEditAccountDialogMode::Edit => {
+                    self.add_popup_dialog(
+                      self.i18n.translate("popup_dialog.title.fail_to_edit_account"),
+                      self.i18n.translate("popup_dialog.content.fail_to_edit_account"),
+                      widget::PopupDialogType::Warning,
+                    )
                   }
                 }
               }
-              widget::AddOrEditAccountDialogMessage::OnCancelButtonPress => {
-                self.add_or_edit_account_dialog = None;
-              }
-              other => {
-                add_or_edit_account_dialog.update(other);
-              }
             }
-          }
-          else {
-            panic!("received AddOrEditAccountDialogMessage while database is None");
+            widget::AddOrEditAccountDialogMessage::OnCancelButtonPress => {
+              self.add_or_edit_account_dialog = None;
+            }
+            other => {
+              add_or_edit_account_dialog.update(other);
+            }
           }
         }
         else {
@@ -516,7 +528,7 @@ impl RootWidget {
       }
 
       Message::NewDatabase => {
-        if self.database.is_some() {
+        if self.database.borrow().is_some() {
           self.add_confirm_dialog(
             self.i18n.translate("confirm_dialog.title.new_database_replace_current_database"),
             self.i18n.translate("confirm_dialog.content.new_database_replace_current_database"),
@@ -568,7 +580,7 @@ impl RootWidget {
 
         match db.save(&self.i18n) {
           Ok(_) => {
-            self.database = Some(db);
+            self.database.replace(Some(db));
             self.update(Message::NewDatabaseSuccess)
           }
           Err(err) => {
@@ -597,7 +609,7 @@ impl RootWidget {
       }
 
       Message::LoadDatabase => {
-        if self.database.is_some() {
+        if self.database.borrow().is_some() {
           self.add_confirm_dialog(
             self.i18n.translate("confirm_dialog.title.loaded_database_replace_current_database"),
             self.i18n.translate("confirm_dialog.content.loaded_database_replace_current_database"),
@@ -638,7 +650,7 @@ impl RootWidget {
       Message::LoadDatabaseMainPasswordInputted(path) => {
         match Database::load(path, self.temp_password.clone(), &self.i18n) {
           Ok(database) => {
-            self.database = Some(database);
+            self.database.replace(Some(database));
             self.update(Message::LoadDatabaseSuccess)
           },
           Err(err) => self.update(Message::LoadDatabaseFail(err.to_string())),
@@ -665,8 +677,24 @@ impl RootWidget {
       }
 
       Message::SaveDatabase => {
-        if let Some(database) = &mut self.database {
-          match database.save(&self.i18n) {
+        let result: Option<Result<(), Box<dyn Error>>> = match self.database.borrow_mut().as_mut() {
+          Some(database) => {
+            match database.save(&self.i18n) {
+              Ok(_) => {
+                Some(Ok(()))
+              }
+              Err(err) => {
+                Some(Err(err))
+              }
+            }
+          }
+          None => {
+            None
+          }
+        };
+
+        if let Some(result) = result {
+          match result {
             Ok(_) => {
               self.add_popup_dialog(
                 self.i18n.translate("popup_dialog.title.save_database_success"),
@@ -694,7 +722,7 @@ impl RootWidget {
       }
 
       Message::SaveAsDatabase => {
-        if self.database.is_some() {
+        if self.database.borrow().is_some() {
           Task::perform(
             util::select_new_file(),
             |res| match res {
@@ -716,7 +744,10 @@ impl RootWidget {
       Message::SaveAsDatabaseSelected(path) => {
         match path {
           Some(path) => {
-            match self.database.as_mut().expect("`self.database` should be `Some` in `Message::SaveAsDatabaseSelected`").save_as(path, &self.i18n) {
+            let result = self.database.borrow_mut().as_mut()
+              .expect("`self.database` should be `Some` in `Message::SaveAsDatabaseSelected`")
+              .save_as(path, &self.i18n);
+            match result {
               Ok(_) => self.update(Message::SaveAsDatabaseSuccess),
               Err(err) => self.update(Message::SaveAsDatabaseFail(err.to_string())),
             }
@@ -754,8 +785,8 @@ impl RootWidget {
   pub fn view(&self) -> Element<Message> {
     let content = column![
       self.header.view(&self.i18n, &self.global_state, &self.style_variable).map(Message::HeaderMessage),
-      self.working_area.view(&self.i18n, self.database.as_ref(), &self.global_state, &self.style_variable).map(Message::WorkingAreaMessage),
-      self.status_bar.view(&self.i18n, self.database.as_ref(), &self.style_variable).map(Message::StatusBarMessage),
+      self.working_area.view(&self.i18n, &self.global_state, &self.style_variable).map(Message::WorkingAreaMessage),
+      self.status_bar.view(&self.i18n, &self.style_variable).map(Message::StatusBarMessage),
     ]
     .width(Length::Fill)
     .height(Length::Fill);
@@ -777,7 +808,7 @@ impl RootWidget {
       )
     }
     else if let Some(account_detail_dialog) = self.account_detail_dialog.as_ref() {
-      if let Some(database) = self.database.as_ref() {
+      if let Some(database) = self.database.borrow().as_ref() {
         modal(
           content,
           account_detail_dialog.view(&self.i18n, database, &self.style_variable).map(Message::AccountDetailDialogMessage),
@@ -789,7 +820,7 @@ impl RootWidget {
       }
     }
     else if let Some(add_or_edit_account_dialog) = self.add_or_edit_account_dialog.as_ref() {
-      if let Some(database) = self.database.as_ref() {
+      if let Some(database) = self.database.borrow().as_ref() {
         modal(
           content,
           add_or_edit_account_dialog.view(&self.i18n, database, &self.style_variable).map(Message::AddOrEditAccountDialogMessage),
@@ -832,12 +863,7 @@ impl RootWidget {
   /// there may be more widgets which need to be informed when database is updated,
   /// this associated function should be the only entrance of this logic
   fn broadcast_database_update(&mut self) {
-    let database = self.database.as_ref().expect("database is None when broadcasting database update");
-    self.working_area.update(
-      widget::WorkingAreaMessage::DatabaseUpdated {
-        accounts_len: database.accounts().len()
-      }
-    );
+    self.working_area.update(widget::WorkingAreaMessage::DatabaseUpdated);
   }
 
 }
