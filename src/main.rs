@@ -85,6 +85,8 @@ pub enum Message {
   SaveAsDatabaseSuccess,
   SaveAsDatabaseFail(String),
 
+  DeleteAccountConfirmed(usize),
+
   Noop,
 
 }
@@ -218,6 +220,56 @@ impl RootWidget {
             }
             else {
               panic!("received WorkingAreaTableViewMessage::OnAccountModifyPress while database is None");
+            }
+          }
+          else if let widget::WorkingAreaTableViewMessage::OnAccountDeletePress(id) = msg {
+            // basic validation
+            let database = self.database.borrow();
+            let account = match database.as_ref() {
+              Some(db) => {
+                match db.accounts().get(id) {
+                  Some(account) => {
+                    match account {
+                      Some(account) => {
+                        if account.id() != id {
+                          panic!("Account's id ({}) is not identical to it's index ({})", account.id(), id);
+                        }
+                        else {
+                          account
+                        }
+                      }
+                      None => {
+                        panic!("Account (id={id}) has already been deleted");
+                      }
+                    }
+                  }
+                  None => {
+                    panic!("Account index ({id}) out of range");
+                  }
+                }
+              }
+              None => {
+                panic!("received WorkingAreaTableViewMessage::OnAccounOnAccountDeletePresstModifyPress while database is None");
+              }
+            };
+
+            // no children & not referenced by other accounts
+            if !account.children_accounts().is_empty() || !account.referenced_by_accounts().is_empty() {
+              drop(database);
+              self.add_popup_dialog(
+                self.i18n.translate("popup_dialog.title.fail_to_delete_account_be_depended"),
+                self.i18n.translate("popup_dialog.content.fail_to_delete_account_be_depended"),
+                widget::PopupDialogType::Warning,
+              );
+            }
+            else {
+              drop(database);
+              self.add_confirm_dialog(
+                self.i18n.translate("confirm_dialog.title.delete_account"),
+                self.i18n.translate_variable("confirm_dialog.content.delete_account", &[("$id", &id.to_string())]),
+                Message::DeleteAccountConfirmed(id),
+                Message::Noop,
+              );
             }
           }
           else if let widget::WorkingAreaTableViewMessage::OnAccountDetailPress(id) = msg {
@@ -773,6 +825,36 @@ impl RootWidget {
           err.to_string(),
           widget::PopupDialogType::Error
         );
+        Task::none()
+      }
+
+      Message::DeleteAccountConfirmed(id) => {
+        {
+          let mut database = self.database.borrow_mut();
+          let database = database.as_mut().expect("received WorkingAreaTableViewMessage::OnAddAccountPress while database is None");
+          let account = database.accounts_mut().get_mut(id).expect(&format!("Account index ({id}) out of range"));
+          if account.is_some() {
+            // take the account of out database
+            let account = account.take().unwrap();
+            // remove dependencies on other accounts
+            if let Some(pid) = account.parent_account() {
+              database
+                .accounts_mut().get_mut(pid).expect(&format!("Parent account id ({pid}) out of range"))
+                .as_mut().expect(&format!("Parent account (id={pid}) has already been deleted"))
+                .remove_children_account(account.id());
+            }
+            account.reference_accounts().iter().for_each(|ref_acc| {
+              database
+                .accounts_mut().get_mut(*ref_acc).expect(&format!("Reference account id ({ref_acc}) out of range"))
+                .as_mut().expect(&format!("Reference account (id={ref_acc}) has already been deleted"))
+                .remove_referenced_by_account(account.id());
+            });
+          }
+          else {
+            panic!("Account (id={id}) has already been deleted");
+          }
+        }
+        self.broadcast_database_update();
         Task::none()
       }
 

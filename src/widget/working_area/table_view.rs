@@ -45,6 +45,8 @@ pub enum Message {
 
   OnAccountModifyPress(usize),
 
+  OnAccountDeletePress(usize),
+
   OnAddAccountPress,
 
   OnPageSizeSelect(usize),
@@ -110,6 +112,9 @@ impl TableView {
       }
       Message::OnAccountModifyPress(_id) => {
         warn!("Event {MODULE_PATH}::Message::OnAccountModifyPress should be intercepted");
+      }
+      Message::OnAccountDeletePress(_id) => {
+        warn!("Event {MODULE_PATH}::Message::OnAccountDeletePress should be intercepted");
       }
       Message::OnAddAccountPress => {
         warn!("Event {MODULE_PATH}::Message::OnAddAccountPress should be intercepted");
@@ -392,6 +397,7 @@ impl TableView {
               )
               .push(
                 Button::new(Text::new(i18n.translate("working_area.table_view.body.operation.delete")))
+                .on_press(Message::OnAccountDeletePress(account.id()))
               )
               .spacing(style_variable.working_area_table_view_body_operation_spacing)
               .width(Self::COLUMN_WIDTH[10])

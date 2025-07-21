@@ -60,6 +60,19 @@ impl I18n {
     }
   }
 
+  pub fn translate_variable<'a>(&'a self, key: &'a str, variables: &[(&str, &str)]) -> String {
+    match self.translations.get(key) {
+      Some(text) => {
+        let mut text = text.clone();
+        for v in variables {
+          text = text.replace(v.0, v.1);
+        }
+        text
+      },
+      None => key.to_string(),
+    }
+  }
+
   pub fn get_available_languages(&self) -> &[String] {
     &self.available_languages[..]
   }
