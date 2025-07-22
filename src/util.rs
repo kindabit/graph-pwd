@@ -2,6 +2,7 @@ mod byte_slice_reader;
 mod byte_vec_writer;
 pub mod account_util;
 pub mod number_util;
+pub mod tree_util;
 
 use std::error::Error;
 

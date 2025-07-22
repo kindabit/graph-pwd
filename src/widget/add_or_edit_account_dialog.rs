@@ -1,9 +1,9 @@
-use std::{collections::{BTreeMap, BTreeSet}, sync::{Arc, Mutex}};
+use std::{collections::{BTreeMap, BTreeSet, HashSet}, sync::{Arc, Mutex}};
 
 use iced::{widget::{scrollable, Button, Column, Row, Scrollable, Space, Text, TextInput}, Alignment, Element, Length};
 use log::warn;
 
-use crate::{database::{account::Account, Database}, i18n::I18n, style_variable::StyleVariable, util::account_util};
+use crate::{database::{account::Account, Database}, i18n::I18n, style_variable::StyleVariable, util::{account_util, tree_util}};
 
 use super::MiniAccountSelector;
 
@@ -357,12 +357,20 @@ impl AddOrEditAccountDialog {
 
     // parent account - parent account selector
 
+    // self, children and children's children are all excluded, to avoid "paradox"
+    let mut exclude_account_ids = HashSet::new();
+    if let Some(self_id) = self.id {
+      tree_util::traverse_account_tree(self_id, database, &mut |account| {
+        exclude_account_ids.insert(account.id());
+      });
+    }
+
     let parent_account_selector = match self.parent_account.as_ref() {
       Some(parent_account) => {
         self.account_selector.view(
           database,
           &self.parent_account_search,
-          self.id,
+          &exclude_account_ids,
           &[*parent_account],
           style_variable,
         )
@@ -371,7 +379,7 @@ impl AddOrEditAccountDialog {
         self.account_selector.view(
           database,
           &self.parent_account_search,
-          self.id,
+          &exclude_account_ids,
           &[],
           style_variable,
         )
@@ -413,11 +421,17 @@ impl AddOrEditAccountDialog {
 
     // reference accounts - reference accounts selector
 
+    // self referencing is not allowed
+    let mut exclude_account_ids = HashSet::new();
+    if let Some(self_id) = self.id {
+      exclude_account_ids.insert(self_id);
+    }
+
     let reference_account_ids: Vec<usize> = self.reference_accounts.iter().map(|pair| *pair).collect();
     let reference_accounts_selector = self.account_selector.view(
       database,
       &self.reference_accounts_search,
-          self.id,
+      &exclude_account_ids,
       &reference_account_ids,
       style_variable,
     );

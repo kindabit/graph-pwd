@@ -26,7 +26,7 @@ impl MiniAccountSelector {
     &self,
     database: &Database,
     filter: &str,
-    exclude_account_id: Option<usize>,
+    exclude_account_ids: &HashSet<usize>,
     selected_account_ids: &[usize],
     style_variable: &Arc<Mutex<StyleVariable>>,
   ) -> Element<Message> {
@@ -44,7 +44,7 @@ impl MiniAccountSelector {
           continue;
         }
         let account = account.as_ref().unwrap();
-        if let Some(exclude_account_id) = exclude_account_id && exclude_account_id == account.id() {
+        if exclude_account_ids.contains(&account.id()) {
           continue;
         }
         let matched = if account.name().to_lowercase().contains(&filter) {
