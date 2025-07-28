@@ -3,7 +3,6 @@ mod app_error;
 mod logging;
 mod config;
 mod i18n;
-mod global_state;
 mod style_variable;
 mod database;
 mod widget;
@@ -16,7 +15,7 @@ use iced::{widget::column, window::Position, Element, Font, Length, Task};
 use log::{debug, info};
 use logging::setup_logging;
 
-use crate::{database::{account::Account, Database}, global_state::GlobalState, style_variable::StyleVariable, util::modal};
+use crate::{database::{account::Account, Database}, style_variable::StyleVariable, util::modal};
 
 pub fn main() -> Result<(), Box<dyn Error>> {
   setup_logging()?;
@@ -97,8 +96,6 @@ struct RootWidget {
 
   i18n: I18n,
 
-  global_state: GlobalState,
-
   style_variable: Arc<Mutex<StyleVariable>>,
 
   database: Rc<RefCell<Option<Database>>>,
@@ -131,12 +128,12 @@ impl RootWidget {
   pub fn new(config: Config, i18n: I18n) -> Self {
     let database = Rc::new(RefCell::new(None));
 
+    let initial_tree_mode = config.tree_mode();
+
     Self {
       config,
 
       i18n,
-
-      global_state: GlobalState::new(),
 
       style_variable: Arc::new(Mutex::new(StyleVariable::new())),
 
@@ -154,9 +151,9 @@ impl RootWidget {
 
       main_password_dialog: None,
 
-      header: widget::Header::new(),
+      header: widget::Header::new(initial_tree_mode),
 
-      working_area: widget::WorkingArea::new(database.clone()),
+      working_area: widget::WorkingArea::new(database.clone(), initial_tree_mode),
 
       status_bar: widget::StatusBar::new(database.clone()),
 
@@ -169,7 +166,9 @@ impl RootWidget {
       Message::HeaderMessage(msg) => {
         match msg {
           widget::HeaderMessage::OnTreeModeToggled(toggled) => {
-            self.global_state.set_tree_mode(toggled);
+            self.config.set_tree_mode(toggled);
+            self.header.update(msg);
+            self.working_area.update(widget::WorkingAreaMessage::TreeModeUpdated(toggled));
             Task::none()
           }
           widget::HeaderMessage::OnNewButtonPress => {
@@ -866,8 +865,8 @@ impl RootWidget {
 
   pub fn view(&self) -> Element<Message> {
     let content = column![
-      self.header.view(&self.i18n, &self.global_state, &self.style_variable).map(Message::HeaderMessage),
-      self.working_area.view(&self.i18n, &self.global_state, &self.style_variable).map(Message::WorkingAreaMessage),
+      self.header.view(&self.i18n, &self.style_variable).map(Message::HeaderMessage),
+      self.working_area.view(&self.i18n, &self.style_variable).map(Message::WorkingAreaMessage),
       self.status_bar.view(&self.i18n, &self.style_variable).map(Message::StatusBarMessage),
     ]
     .width(Length::Fill)

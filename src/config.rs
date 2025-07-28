@@ -5,6 +5,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Config {
   language: String,
+  tree_mode: bool,
 }
 
 impl Config {
@@ -20,5 +21,13 @@ impl Config {
 
   pub fn set_language(&mut self, val: &str) {
     self.language = val.to_string()
+  }
+
+  pub fn tree_mode(&self) -> bool {
+    self.tree_mode
+  }
+
+  pub fn set_tree_mode(&mut self, tree_mode: bool) {
+    self.tree_mode = tree_mode;
   }
 }

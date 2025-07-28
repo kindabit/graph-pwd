@@ -157,13 +157,13 @@ impl TableView {
     }
   }
 
-  pub fn view(&self, i18n: &I18n, database: &Database, style_variable: &Arc<Mutex<StyleVariable>>) -> Element<Message> {
+  pub fn view(&self, i18n: &I18n, style_variable: &Arc<Mutex<StyleVariable>>) -> Element<Message> {
     let mut table = Column::new()
       .push(self.search_box(i18n, style_variable))
       .push(self.head(i18n, style_variable));
 
     let mut body = Column::new();
-    for row in self.body(i18n, database, style_variable) {
+    for row in self.body(i18n, style_variable) {
       body = body.push(row);
     }
 
@@ -295,7 +295,17 @@ impl TableView {
     })
   }
 
-  fn body(&self, i18n: &I18n, database: &Database, style_variable: &Arc<Mutex<StyleVariable>>) -> Vec<Container<Message>> {
+  fn body(&self, i18n: &I18n, style_variable: &Arc<Mutex<StyleVariable>>) -> Vec<Container<Message>> {
+    let database = self.database.borrow();
+    let database = match database.as_ref() {
+      Some(db) => {
+        db
+      },
+      None => {
+        panic!("Database is None when rendering body of table view");
+      }
+    };
+
     let page_start = (self.page_no - 1) * self.page_size;
     let page_end = min(page_start + self.page_size, self.get_filtered_accounts_iter(database.accounts()).count());
     let real_page_size = page_end - page_start;

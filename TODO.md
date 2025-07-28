@@ -14,8 +14,12 @@ set up CI pipeline on github
 
 select and change language
 
-optimize the message route of WorkingArea and TableView (route DatabaseUpdate to TreeView or TableView based on tree_mode)
-
 references and parent relationship should carry information
 
 press Ctrl+S to save
+
+show details of parent, children, reference and referenced by accounts
+
+tree mode & tree view
+
+logical/soft delete

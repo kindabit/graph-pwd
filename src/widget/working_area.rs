@@ -5,13 +5,25 @@ use std::{cell::RefCell, rc::Rc, sync::{Arc, Mutex}};
 
 use iced::{widget::{container, text}, Alignment, Element, Length};
 
-use crate::{database::Database, global_state::GlobalState, i18n::I18n, style_variable::StyleVariable, widget::working_area::table_view::TableView};
+use crate::{database::Database, i18n::I18n, style_variable::StyleVariable, widget::working_area::table_view::TableView};
+
+enum WorkingAreaChild {
+
+  Empty,
+
+  TableView(TableView),
+
+  TreeView,
+
+}
 
 pub struct WorkingArea {
 
-  table_view: TableView,
+  child: WorkingAreaChild,
 
   database: Rc<RefCell<Option<Database>>>,
+
+  tree_mode: bool,
 
 }
 
@@ -22,41 +34,103 @@ pub enum Message {
 
   DatabaseUpdated,
 
+  TreeModeUpdated(bool),
+
 }
 
 impl WorkingArea {
-  pub fn new(database: Rc<RefCell<Option<Database>>>) -> Self {
+  pub fn new(database: Rc<RefCell<Option<Database>>>, tree_mode: bool) -> Self {
+    let has_database = database.borrow().is_some();
+
     Self {
-      table_view: TableView::new(database.clone()),
+      child:
+        if has_database {
+          if tree_mode {
+            WorkingAreaChild::TreeView
+          }
+          else {
+            WorkingAreaChild::TableView(TableView::new(database.clone()))
+          }
+        }
+        else {
+          WorkingAreaChild::Empty
+        },
       database: database.clone(),
+      tree_mode,
     }
   }
 
   pub fn update(&mut self, message: Message) {
     match message {
       Message::TableViewMessage(msg) => {
-        self.table_view.update(msg)
+        if let WorkingAreaChild::TableView(table_view) = &mut self.child {
+          table_view.update(msg)
+        }
+        else {
+          panic!("Received TableViewMessage while child is not TableView");
+        }
       }
       Message::DatabaseUpdated => {
-        self.table_view.update(table_view::Message::DatabaseUpdated)
+        let database = self.database.borrow();
+        let database = database.as_ref();
+
+        if let Some(_database) = database {
+          match &mut self.child {
+            WorkingAreaChild::Empty => {
+              if self.tree_mode {
+                self.child = WorkingAreaChild::TreeView;
+              }
+              else {
+                self.child = WorkingAreaChild::TableView(TableView::new(self.database.clone()))
+              }
+            },
+            WorkingAreaChild::TableView(table_view) => {
+              table_view.update(table_view::Message::DatabaseUpdated);
+            },
+            WorkingAreaChild::TreeView => {
+              todo!()
+            },
+          }
+        }
+        else {
+          self.child = WorkingAreaChild::Empty
+        }
+      }
+      Message::TreeModeUpdated(tree_mode) => {
+        self.tree_mode = tree_mode;
+        match &self.child {
+          WorkingAreaChild::Empty => {
+          }
+          WorkingAreaChild::TableView(_) => {
+            if tree_mode {
+              self.child = WorkingAreaChild::TreeView;
+            }
+          }
+          WorkingAreaChild::TreeView => {
+            if !tree_mode {
+              self.child = WorkingAreaChild::TableView(TableView::new(self.database.clone()));
+            }
+          }
+        }
       }
     }
   }
 
-  pub fn view(&self, i18n: &I18n, global_state: &GlobalState, style_variable: &Arc<Mutex<StyleVariable>>) -> Element<Message> {
-    let tree_mode = global_state.tree_mode();
-
-    let container =  match self.database.borrow().as_ref() {
-      Some(database) => {
-        container(self.table_view.view(i18n, database, style_variable).map(Message::TableViewMessage))
-        .width(Length::Fill)
-        .height(Length::Fill)
-      }
-      None => {
+  pub fn view(&self, i18n: &I18n, style_variable: &Arc<Mutex<StyleVariable>>) -> Element<Message> {
+    let container = match &self.child {
+      WorkingAreaChild::Empty => {
         container(text(i18n.translate("working_area.no_opened_database")))
         .align_x(Alignment::Center)
         .align_y(Alignment::Center)
-      }
+      },
+      WorkingAreaChild::TableView(table_view) => {
+        container(table_view.view(i18n, style_variable).map(Message::TableViewMessage))
+        .width(Length::Fill)
+        .height(Length::Fill)
+      },
+      WorkingAreaChild::TreeView => {
+        todo!()
+      },
     };
 
     container
