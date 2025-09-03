@@ -23,3 +23,9 @@ show details of parent, children, reference and referenced by accounts
 tree mode & tree view
 
 logical/soft delete
+
+elaborate pagination control (what?)
+
+it seems that storing account id is not necessary (an account's id is identical to its index in account array)
+
+icons, maybe I need to load two sets of fonts.

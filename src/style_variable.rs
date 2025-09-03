@@ -1,6 +1,6 @@
 use std::sync::{Arc, Mutex, MutexGuard};
 
-use iced::{Background, Color, Length, Padding, Pixels};
+use iced::{border::Radius, Background, Color, Length, Padding, Pixels};
 
 pub struct StyleVariable {
 
@@ -41,6 +41,24 @@ pub struct StyleVariable {
   pub working_area_table_view_footer_jump_to_input_width: Pixels,
 
   pub working_area_table_view_footer_spacing: Pixels,
+
+  pub working_area_tree_view_indent_size: f32,
+
+  pub working_area_tree_view_service_info_left_padding: f32,
+
+  pub working_area_tree_view_row_height: Length,
+
+  pub working_area_tree_view_fold_unfold_button_size: Length,
+
+  pub working_area_tree_view_fold_unfold_button_border_radius: Radius,
+
+  pub working_area_tree_view_fold_unfold_button_margin: Length,
+
+  pub working_area_tree_view_fold_unfold_button_background: Background,
+
+  pub working_area_tree_view_fold_unfold_button_hovered_background: Background,
+
+  pub working_area_tree_view_fold_unfold_button_pressed_background: Background,
 
   pub status_bar_padding: Padding,
 
@@ -155,6 +173,20 @@ impl StyleVariable {
       },
       working_area_table_view_footer_jump_to_input_width: Pixels(96_f32),
       working_area_table_view_footer_spacing: Pixels(6_f32),
+      working_area_tree_view_indent_size: 48_f32,
+      working_area_tree_view_service_info_left_padding: 16_f32,
+      working_area_tree_view_row_height: Length::Fixed(32_f32),
+      working_area_tree_view_fold_unfold_button_size: Length::Fixed(24_f32),
+      working_area_tree_view_fold_unfold_button_border_radius: Radius {
+        top_left: 12_f32,
+        top_right: 12_f32,
+        bottom_right: 12_f32,
+        bottom_left: 12_f32,
+      },
+      working_area_tree_view_fold_unfold_button_margin: Length::Fixed(6_f32),
+      working_area_tree_view_fold_unfold_button_background: Background::Color(Color::TRANSPARENT),
+      working_area_tree_view_fold_unfold_button_hovered_background: Background::Color(Color { r: 1_f32, g: 1_f32, b: 1_f32, a: 0.2_f32 }),
+      working_area_tree_view_fold_unfold_button_pressed_background: Background::Color(Color { r: 1_f32, g: 1_f32, b: 1_f32, a: 0.1_f32 }),
       status_bar_padding: Padding {
         top: 6_f32,
         right: 12_f32,

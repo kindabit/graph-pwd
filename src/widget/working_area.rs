@@ -5,7 +5,10 @@ use std::{cell::RefCell, rc::Rc, sync::{Arc, Mutex}};
 
 use iced::{widget::{container, text}, Alignment, Element, Length};
 
-use crate::{database::Database, i18n::I18n, style_variable::StyleVariable, widget::working_area::table_view::TableView};
+use crate::{database::Database, i18n::I18n, style_variable::StyleVariable};
+
+use table_view::TableView;
+use tree_view::TreeView;
 
 enum WorkingAreaChild {
 
@@ -13,7 +16,7 @@ enum WorkingAreaChild {
 
   TableView(TableView),
 
-  TreeView,
+  TreeView(TreeView),
 
 }
 
@@ -32,6 +35,8 @@ pub enum Message {
 
   TableViewMessage(table_view::Message),
 
+  TreeViewMessage(tree_view::Message),
+
   DatabaseUpdated,
 
   TreeModeUpdated(bool),
@@ -46,7 +51,7 @@ impl WorkingArea {
       child:
         if has_database {
           if tree_mode {
-            WorkingAreaChild::TreeView
+            WorkingAreaChild::TreeView(TreeView::new(database.clone()))
           }
           else {
             WorkingAreaChild::TableView(TableView::new(database.clone()))
@@ -70,6 +75,14 @@ impl WorkingArea {
           panic!("Received TableViewMessage while child is not TableView");
         }
       }
+      Message::TreeViewMessage(msg) => {
+        if let WorkingAreaChild::TreeView(tree_view) = &mut self.child {
+          tree_view.update(msg)
+        }
+        else {
+          panic!("Received TreeViewMessage while child is not TreeView");
+        }
+      }
       Message::DatabaseUpdated => {
         let database = self.database.borrow();
         let database = database.as_ref();
@@ -78,7 +91,7 @@ impl WorkingArea {
           match &mut self.child {
             WorkingAreaChild::Empty => {
               if self.tree_mode {
-                self.child = WorkingAreaChild::TreeView;
+                self.child = WorkingAreaChild::TreeView(TreeView::new(self.database.clone()));
               }
               else {
                 self.child = WorkingAreaChild::TableView(TableView::new(self.database.clone()))
@@ -87,8 +100,8 @@ impl WorkingArea {
             WorkingAreaChild::TableView(table_view) => {
               table_view.update(table_view::Message::DatabaseUpdated);
             },
-            WorkingAreaChild::TreeView => {
-              todo!()
+            WorkingAreaChild::TreeView(tree_view) => {
+              tree_view.update(tree_view::Message::DatabaseUpdated);
             },
           }
         }
@@ -103,10 +116,10 @@ impl WorkingArea {
           }
           WorkingAreaChild::TableView(_) => {
             if tree_mode {
-              self.child = WorkingAreaChild::TreeView;
+              self.child = WorkingAreaChild::TreeView(TreeView::new(self.database.clone()));
             }
           }
-          WorkingAreaChild::TreeView => {
+          WorkingAreaChild::TreeView(_) => {
             if !tree_mode {
               self.child = WorkingAreaChild::TableView(TableView::new(self.database.clone()));
             }
@@ -128,8 +141,10 @@ impl WorkingArea {
         .width(Length::Fill)
         .height(Length::Fill)
       },
-      WorkingAreaChild::TreeView => {
-        todo!()
+      WorkingAreaChild::TreeView(tree_view) => {
+        container(tree_view.view(i18n, style_variable).map(Message::TreeViewMessage))
+        .width(Length::Fill)
+        .height(Length::Fill)
       },
     };
 
