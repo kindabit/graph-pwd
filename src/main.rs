@@ -3,6 +3,7 @@ mod app_error;
 mod logging;
 mod config;
 mod i18n;
+mod font_icon;
 mod style_variable;
 mod database;
 mod widget;
@@ -20,7 +21,7 @@ use crate::{database::{account::Account, Database}, style_variable::StyleVariabl
 pub fn main() -> Result<(), Box<dyn Error>> {
   setup_logging()?;
 
-  iced::application(
+  let app =iced::application(
     || {
       let config = Config::new().expect("fail to initialize config");
       debug!("config: {config:?}");
@@ -36,8 +37,10 @@ pub fn main() -> Result<(), Box<dyn Error>> {
     RootWidget::update,
     RootWidget::view
   )
-  .font(include_bytes!("./assets/SourceHanSansSC-Regular.otf"))
-  .default_font(Font::with_name("Source Han Sans SC"))
+  .font(include_bytes!("./assets/思源黑体.otf"))
+  .default_font(Font::with_name("思源黑体"));
+
+  font_icon::load(app)
   .title("Graph PWD")
   .window(iced::window::Settings {
     position: Position::Specific([0_f32, 0_f32].into()),

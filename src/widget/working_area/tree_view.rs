@@ -1,9 +1,9 @@
 use std::{cell::RefCell, rc::Rc, sync::{Arc, Mutex}};
 
-use iced::{widget::{Button, Column, Container, Row, Rule, Space, Text}, Alignment, Background, Border, Color, Element, Length, Padding};
+use iced::{widget::{Button, Column, Container, Row, Rule, Space, Text}, Alignment, Background, Border, Color, Element, Font, Length, Padding};
 use log::warn;
 
-use crate::{database::Database, i18n::I18n, style_variable::StyleVariable};
+use crate::{database::Database, font_icon, i18n::I18n, style_variable::StyleVariable};
 
 const MODULE_PATH: &str = module_path!();
 
@@ -220,7 +220,7 @@ impl TreeView {
         content = content.push(
           if account_tree.children.len() > 0 {
             Button::new(
-              Container::new(Text::new("-"))
+              Container::new(font_icon::keyboard_arrow_down_round())
               .width(Length::Fill)
               .height(Length::Fill)
               .align_x(Alignment::Center)
@@ -230,7 +230,7 @@ impl TreeView {
           }
           else {
             Button::new(
-              Container::new(Text::new("+"))
+              Container::new(font_icon::keyboard_arrow_right_round())
               .width(Length::Fill)
               .height(Length::Fill)
               .align_x(Alignment::Center)
