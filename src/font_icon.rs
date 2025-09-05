@@ -16,3 +16,15 @@ pub fn keyboard_arrow_down_round() -> Text<'static> {
 pub fn keyboard_arrow_right_round() -> Text<'static> {
   Text::new("\u{e315}").font(Font::with_name("Material Icons Round"))
 }
+
+pub fn more_round() -> Text<'static> {
+  Text::new("\u{e619}").font(Font::with_name("Material Icons Round"))
+}
+
+pub fn edit_round() -> Text<'static> {
+  Text::new("\u{e3c9}").font(Font::with_name("Material Icons Round"))
+}
+
+pub fn delete_round() -> Text<'static> {
+  Text::new("\u{e872}").font(Font::with_name("Material Icons Round"))
+}

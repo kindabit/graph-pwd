@@ -1,6 +1,6 @@
 use std::{cell::RefCell, rc::Rc, sync::{Arc, Mutex}};
 
-use iced::{widget::{Button, Column, Container, Row, Rule, Space, Text}, Alignment, Background, Border, Color, Element, Font, Length, Padding};
+use iced::{widget::{Button, Column, Container, Row, Rule, Space, Text}, Alignment, Border, Color, Element, Length, Padding};
 use log::warn;
 
 use crate::{database::Database, font_icon, i18n::I18n, style_variable::StyleVariable};
@@ -161,7 +161,7 @@ impl TreeView {
 
       for account_tree in &self.forest {
         path_stack.push(account_tree.account_id);
-        rows = self.render_account_tree(style_variable, account_tree, rows, &mut tail_stack, &mut path_stack);
+        rows = self.render_account_tree(style_variable, i18n, account_tree, rows, &mut tail_stack, &mut path_stack);
         path_stack.pop();
       }
     }
@@ -172,6 +172,7 @@ impl TreeView {
   fn render_account_tree<'a, 'b>(
     &'a self,
     style_variable: &Arc<Mutex<StyleVariable>>,
+    i18n: &I18n,
     account_tree: &AccountTree,
     mut rows: Column<'b, Message>,
     tail_stack: &mut Vec<usize>,
@@ -211,7 +212,7 @@ impl TreeView {
 
     // fold/unfold button or a placeholder text, and the left/right margins around it
     content = content.push(Space::new(
-      { StyleVariable::lock(&style_variable).working_area_tree_view_fold_unfold_button_margin },
+      { StyleVariable::lock(&style_variable).working_area_tree_view_row_button_margin },
       Length::Fill,
     ));
     match account_tree.has_children {
@@ -219,74 +220,33 @@ impl TreeView {
         let style_variable = style_variable.clone();
         content = content.push(
           if account_tree.children.len() > 0 {
-            Button::new(
-              Container::new(font_icon::keyboard_arrow_down_round())
-              .width(Length::Fill)
-              .height(Length::Fill)
-              .align_x(Alignment::Center)
-              .align_y(Alignment::Center)
+            self.create_row_button(
+              font_icon::keyboard_arrow_down_round(),
+              Message::OnFoldAccountTreePress(account_tree.account_id),
+              &style_variable,
             )
-            .on_press(Message::OnFoldAccountTreePress(account_tree.account_id))
           }
           else {
-            Button::new(
-              Container::new(font_icon::keyboard_arrow_right_round())
-              .width(Length::Fill)
-              .height(Length::Fill)
-              .align_x(Alignment::Center)
-              .align_y(Alignment::Center)
+            self.create_row_button(
+              font_icon::keyboard_arrow_right_round(),
+              Message::OnUnfoldAccountTreePress(account_tree.account_id),
+              &style_variable,
             )
-            .on_press(Message::OnUnfoldAccountTreePress(account_tree.account_id))
           }
-          .width({ StyleVariable::lock(&style_variable).working_area_tree_view_fold_unfold_button_size })
-          .height({ StyleVariable::lock(&style_variable).working_area_tree_view_fold_unfold_button_size })
-          .padding(Padding {
-            top: 0_f32,
-            right: 0_f32,
-            bottom: 0_f32,
-            left: 0_f32,
-          })
-          .style(move |_theme, _status| {
-            iced::widget::button::Style {
-              background: Some(
-                match _status {
-                  iced::widget::button::Status::Active => {
-                    { StyleVariable::lock(&style_variable).working_area_tree_view_fold_unfold_button_background }
-                  },
-                  iced::widget::button::Status::Hovered => {
-                    { StyleVariable::lock(&style_variable).working_area_tree_view_fold_unfold_button_hovered_background }
-                  },
-                  iced::widget::button::Status::Pressed => {
-                    { StyleVariable::lock(&style_variable).working_area_tree_view_fold_unfold_button_pressed_background }
-                  },
-                  iced::widget::button::Status::Disabled => {
-                    panic!("Fold/Unfold button is disabled, which is not expected");
-                  },
-                }
-              ),
-              border: Border {
-                color: Color::TRANSPARENT,
-                width: 0_f32,
-                radius: { StyleVariable::lock(&style_variable).working_area_tree_view_fold_unfold_button_border_radius },
-              },
-              text_color: Color::WHITE,
-              ..Default::default()
-            }
-          })
         )
       }
       false => {
         content = content.push(
-          Text::new(" ").width({ StyleVariable::lock(style_variable).working_area_tree_view_fold_unfold_button_size })
+          Text::new(" ").width({ StyleVariable::lock(style_variable).working_area_tree_view_row_button_size })
         )
       }
     };
     content = content.push(Space::new(
-      { StyleVariable::lock(&style_variable).working_area_tree_view_fold_unfold_button_margin },
+      { StyleVariable::lock(&style_variable).working_area_tree_view_row_button_margin },
       Length::Fill,
     ));
 
-    // account info
+    // account info & splitter
     {
       let database = self.database.borrow();
       let database = database.as_ref().expect("Database is None when rendering tree view");
@@ -311,15 +271,74 @@ impl TreeView {
         }
         content = content
         .push(
-          Space::new(
-            { StyleVariable::lock(style_variable).working_area_tree_view_service_info_left_padding },
-            1_f32,
+          Container::new(
+            Rule::vertical(4)
           )
+          .width({ StyleVariable::lock(style_variable).working_area_tree_view_service_info_left_padding })
+          .height({ StyleVariable::lock(style_variable).working_area_tree_view_splitter_height })
+          .align_x(Alignment::Center)
         )
         .push(
           Text::new(service_info)
         );
       }
+    }
+
+    // actions & splitter
+    {
+      content = content
+      .push(
+        Container::new(
+          Rule::vertical(4)
+        )
+        .width({ StyleVariable::lock(style_variable).working_area_tree_view_actions_left_padding })
+        .height({ StyleVariable::lock(style_variable).working_area_tree_view_splitter_height })
+        .align_x(Alignment::Center)
+      )
+      // detail
+      .push(
+        super::super::common::create_tooltip(
+          self.create_row_button(
+            font_icon::more_round(),
+            Message::OnAccountDetailPress(account_tree.account_id),
+            &style_variable
+          ),
+          i18n.translate("working_area.tree_view.tooltip.detail"),
+          &style_variable,
+        )
+      )
+      .push(Space::new(
+        { StyleVariable::lock(&style_variable).working_area_tree_view_row_button_margin },
+        Length::Fill,
+      ))
+      // edit
+      .push(
+        super::super::common::create_tooltip(
+          self.create_row_button(
+            font_icon::edit_round(),
+            Message::OnAccountModifyPress(account_tree.account_id),
+            &style_variable
+          ),
+          i18n.translate("working_area.tree_view.tooltip.modify"),
+          &style_variable,
+        )
+      )
+      .push(Space::new(
+        { StyleVariable::lock(&style_variable).working_area_tree_view_row_button_margin },
+        Length::Fill,
+      ))
+      // delete
+      .push(
+        super::super::common::create_tooltip(
+          self.create_row_button(
+            font_icon::delete_round(),
+            Message::OnAccountDeletePress(account_tree.account_id),
+            &style_variable
+          ),
+          i18n.translate("working_area.tree_view.tooltip.delete"),
+          &style_variable,
+        )
+      );
     }
 
     let mut content_wrapper_horizontal_rule = Column::new();
@@ -338,13 +357,65 @@ impl TreeView {
       tail_stack.push(account_tree.children.last().expect("Account tree's children is empty").account_id);
       for child_account_tree in &account_tree.children {
         path_stack.push(child_account_tree.account_id);
-        rows = self.render_account_tree(style_variable, child_account_tree, rows, tail_stack, path_stack);
+        rows = self.render_account_tree(style_variable, i18n, child_account_tree, rows, tail_stack, path_stack);
         path_stack.pop();
       }
       tail_stack.pop();
     }
 
     rows
+  }
+
+  fn create_row_button<'a, 'b>(
+    &'a self,
+    text: Text<'b>,
+    message: Message,
+    style_variable: &Arc<Mutex<StyleVariable>>,
+  ) -> Button<'b, Message> {
+    let style_variable = style_variable.clone();
+    Button::new(
+      Container::new(text)
+      .width(Length::Fill)
+      .height(Length::Fill)
+      .align_x(Alignment::Center)
+      .align_y(Alignment::Center)
+    )
+    .on_press(message)
+    .width({ StyleVariable::lock(&style_variable).working_area_tree_view_row_button_size })
+    .height({ StyleVariable::lock(&style_variable).working_area_tree_view_row_button_size })
+    .padding(Padding {
+      top: 0_f32,
+      right: 0_f32,
+      bottom: 0_f32,
+      left: 0_f32,
+    })
+    .style(move |_theme, _status| {
+      iced::widget::button::Style {
+        background: Some(
+          match _status {
+            iced::widget::button::Status::Active => {
+              { StyleVariable::lock(&style_variable).working_area_tree_view_row_button_background }
+            },
+            iced::widget::button::Status::Hovered => {
+              { StyleVariable::lock(&style_variable).working_area_tree_view_row_button_hovered_background }
+            },
+            iced::widget::button::Status::Pressed => {
+              { StyleVariable::lock(&style_variable).working_area_tree_view_row_button_pressed_background }
+            },
+            iced::widget::button::Status::Disabled => {
+              panic!("Fold/Unfold button is disabled, which is not expected");
+            },
+          }
+        ),
+        border: Border {
+          color: Color::TRANSPARENT,
+          width: 0_f32,
+          radius: { StyleVariable::lock(&style_variable).working_area_tree_view_row_button_border_radius },
+        },
+        text_color: Color::WHITE,
+        ..Default::default()
+      }
+    })
   }
 
   fn find_account_tree_mut(&mut self, id: usize) -> &mut AccountTree {

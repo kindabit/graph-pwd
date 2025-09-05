@@ -8,6 +8,7 @@ mod header;
 mod working_area;
 mod status_bar;
 mod mini_account_selector;
+mod common;
 
 pub use popup_dialog::PopupDialog;
 pub use popup_dialog::PopupDialogType;
