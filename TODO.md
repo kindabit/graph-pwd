@@ -1,6 +1,12 @@
 # High Priority
 
-incorrect pagination in table view after adding accounts in tree view
+tree mode & tree view
+- (ok) detail
+- (ok) delete
+- (ok) edit
+- (ok) add
+- search
+- add new account directly under an existing account
 
 references and parent relationship should carry information
 
@@ -9,8 +15,6 @@ select and change language
 press Ctrl+S to save
 
 show details of parent, children, reference and referenced by accounts
-
-tree mode & tree view (detail, delete, edit, add, search)
 
 logical/soft delete
 

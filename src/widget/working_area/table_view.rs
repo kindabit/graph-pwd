@@ -78,7 +78,7 @@ impl TableView {
   ];
 
   pub fn new(database: Rc<RefCell<Option<Database>>>) -> Self {
-    Self {
+    let mut instance = Self {
       database,
       filter: String::new(),
       applied_filter: String::new(),
@@ -88,7 +88,9 @@ impl TableView {
       page_size: 10,
       available_page_size: [10, 20, 30, 40, 50],
       jump_to_page_no: 1,
-    }
+    };
+    instance.reset_page();
+    instance
   }
 
   pub fn update(&mut self, message: Message) {
