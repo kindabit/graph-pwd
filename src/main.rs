@@ -197,8 +197,57 @@ impl RootWidget {
       // wrapping:   TableViewMessage  -> WorkingAreaMessage -> RootWidgetMessage
       // unwrapping: RootWidgetMessage -> WorkingAreaMessage -> TableViewMessage
       Message::WorkingAreaMessage(msg) => {
+        enum LocalAction {
+          Add,
+          Detail(usize),
+          Modify(usize),
+          Delete(usize),
+          Noop,
+        }
+
+        let local_action =
         if let widget::WorkingAreaMessage::TableViewMessage(msg) = msg {
           if let widget::WorkingAreaTableViewMessage::OnAddAccountPress = msg {
+            LocalAction::Add
+          }
+          else if let widget::WorkingAreaTableViewMessage::OnAccountModifyPress(id) = msg {
+            LocalAction::Modify(id)
+          }
+          else if let widget::WorkingAreaTableViewMessage::OnAccountDeletePress(id) = msg {
+            LocalAction::Delete(id)
+          }
+          else if let widget::WorkingAreaTableViewMessage::OnAccountDetailPress(id) = msg {
+            LocalAction::Detail(id)
+          }
+          else {
+            let repack = widget::WorkingAreaMessage::TableViewMessage(msg);
+            self.working_area.update(repack);
+            LocalAction::Noop
+          }
+        }
+        else if let widget::WorkingAreaMessage::TreeViewMessage(msg) = msg {
+          if let widget::WorkingAreaTreeViewMessage::OnAccountDetailPress(id) = msg {
+            LocalAction::Detail(id)
+          }
+          else if let widget::WorkingAreaTreeViewMessage::OnAccountModifyPress(id) = msg {
+            LocalAction::Modify(id)
+          }
+          else if let widget::WorkingAreaTreeViewMessage::OnAccountDeletePress(id) = msg {
+            LocalAction::Delete(id)
+          }
+          else {
+            let repack = widget::WorkingAreaMessage::TreeViewMessage(msg);
+            self.working_area.update(repack);
+            LocalAction::Noop
+          }
+        }
+        else {
+          self.working_area.update(msg);
+          LocalAction::Noop
+        };
+
+        match local_action {
+          LocalAction::Add => {
             if let Some(_) = self.database.borrow().as_ref() {
               self.add_or_edit_account_dialog = Some(widget::AddOrEditAccountDialog::new(
                 widget::AddOrEditAccountDialogMode::Add,
@@ -206,10 +255,18 @@ impl RootWidget {
               ));
             }
             else {
-              panic!("received WorkingAreaTableViewMessage::OnAddAccountPress while database is None");
+              panic!("Working area message categorized into LocalAction::Add while database is None");
             }
           }
-          else if let widget::WorkingAreaTableViewMessage::OnAccountModifyPress(id) = msg {
+          LocalAction::Detail(id) => {
+            if let Some(_) = self.database.borrow().as_ref() {
+              self.account_detail_dialog = Some(widget::AccountDetailDialog::new(id));
+            }
+            else {
+              panic!("Working area message categorized into LocalAction::Detail while database is None");
+            }
+          }
+          LocalAction::Modify(id) => {
             if let Some(database) = self.database.borrow().as_ref() {
               let old_account = database.accounts().get(id)
                 .expect(&format!("Old account id ({id}) out of bounds"))
@@ -221,10 +278,10 @@ impl RootWidget {
               ));
             }
             else {
-              panic!("received WorkingAreaTableViewMessage::OnAccountModifyPress while database is None");
+              panic!("Working area message categorized into LocalAction::Modify while database is None");
             }
           }
-          else if let widget::WorkingAreaTableViewMessage::OnAccountDeletePress(id) = msg {
+          LocalAction::Delete(id) => {
             // basic validation
             let database = self.database.borrow();
             let account = match database.as_ref() {
@@ -251,7 +308,7 @@ impl RootWidget {
                 }
               }
               None => {
-                panic!("received WorkingAreaTableViewMessage::OnAccounOnAccountDeletePresstModifyPress while database is None");
+                panic!("Working area message categorized into LocalAction::Delete while database is None");
               }
             };
 
@@ -274,22 +331,9 @@ impl RootWidget {
               );
             }
           }
-          else if let widget::WorkingAreaTableViewMessage::OnAccountDetailPress(id) = msg {
-            if let Some(_) = self.database.borrow().as_ref() {
-              self.account_detail_dialog = Some(widget::AccountDetailDialog::new(id));
-            }
-            else {
-              panic!("received WorkingAreaTableViewMessage::OnAccountDetailPress while database is None");
-            }
-          }
-          else {
-            let repack = widget::WorkingAreaMessage::TableViewMessage(msg);
-            self.working_area.update(repack);
-          }
+          LocalAction::Noop => {}
         }
-        else {
-          self.working_area.update(msg);
-        }
+
         Task::none()
       }
 

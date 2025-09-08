@@ -35,8 +35,8 @@ pub use header::Message as HeaderMessage;
 
 pub use working_area::WorkingArea;
 pub use working_area::Message as WorkingAreaMessage;
-
 pub use working_area::table_view::Message as WorkingAreaTableViewMessage;
+pub use working_area::tree_view::Message as WorkingAreaTreeViewMessage;
 
 pub use status_bar::StatusBar;
 pub use status_bar::Message as StatusBarMessage;
