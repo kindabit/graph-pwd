@@ -1,5 +1,7 @@
 # High Priority
 
+incorrect pagination in table view after adding accounts in tree view
+
 references and parent relationship should carry information
 
 select and change language

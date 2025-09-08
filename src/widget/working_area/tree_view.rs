@@ -1,6 +1,6 @@
 use std::{cell::RefCell, collections::HashSet, rc::Rc, sync::{Arc, Mutex}};
 
-use iced::{widget::{Button, Column, Container, Row, Rule, Space, Text}, Alignment, Border, Color, Element, Length, Padding};
+use iced::{widget::{scrollable, Button, Column, Container, Row, Rule, Space, Text}, Alignment, Border, Color, Element, Length, Padding};
 use log::warn;
 
 use crate::{database::{account::Account, Database}, font_icon, i18n::I18n, style_variable::StyleVariable};
@@ -33,6 +33,8 @@ pub enum Message {
   OnFoldAccountTreePress(usize),
 
   OnUnfoldAccountTreePress(usize),
+
+  OnAddAccountPress,
 
   OnAccountDetailPress(usize),
 
@@ -70,6 +72,9 @@ impl TreeView {
       Message::OnUnfoldAccountTreePress(id) => {
         self.find_account_tree_mut(id).folded = false;
       }
+      Message::OnAddAccountPress => {
+        warn!("Event {MODULE_PATH}::Message::OnAddAccountPress should be intercepted");
+      }
       Message::OnAccountDetailPress(_id) => {
         warn!("Event {MODULE_PATH}::Message::OnAccountDetailPress should be intercepted");
       }
@@ -84,6 +89,11 @@ impl TreeView {
 
   /// For detailed logic about how the tree is drawn, please refer to `tree_render_logic.png` or `tree_render_logic.xlsx`
   pub fn view(&self, i18n: &I18n, style_variable: &Arc<Mutex<StyleVariable>>) -> Element<Message> {
+    let mut ele = Column::new();
+
+    // todo: search bar
+
+    // scrollable rows
     let mut rows = Column::new();
 
     if !self.forest.is_empty() {
@@ -99,7 +109,42 @@ impl TreeView {
       }
     }
 
-    rows.into()
+    ele = ele.push(
+      scrollable(
+        rows
+        .width(Length::Fill)
+        .height(Length::Shrink)
+      )
+      .width(Length::Fill)
+      .height(Length::Fill)
+      .direction(
+        scrollable::Direction::Vertical(
+          scrollable::Scrollbar::new()
+          .width({ StyleVariable::lock(style_variable).working_area_tree_view_scrollbar_width })
+          .margin({ StyleVariable::lock(style_variable).working_area_tree_view_scrollbar_margin })
+          .scroller_width({ StyleVariable::lock(style_variable).working_area_tree_view_scroller_width })
+          .anchor(scrollable::Anchor::Start)
+        )
+      )
+    );
+
+    // footer
+    ele = ele.push(
+      Container::new(
+        Row::new()
+        .push(
+          Button::new(font_icon::person_add_round())
+          .on_press(Message::OnAddAccountPress)
+        )
+        .width(Length::Fill)
+        .height(Length::Shrink)
+        .align_y(Alignment::Center)
+        .spacing({ StyleVariable::lock(style_variable).working_area_tree_view_footer_spacing })
+        .padding({ StyleVariable::lock(style_variable).working_area_tree_view_footer_padding })
+      )
+    );
+
+    ele.into()
   }
 
   fn render_account_tree<'a, 'b>(

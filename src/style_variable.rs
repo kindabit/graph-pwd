@@ -64,6 +64,16 @@ pub struct StyleVariable {
 
   pub working_area_tree_view_row_button_pressed_background: Background,
 
+  pub working_area_tree_view_scrollbar_width: Pixels,
+
+  pub working_area_tree_view_scroller_width: Pixels,
+
+  pub working_area_tree_view_scrollbar_margin: Pixels,
+
+  pub working_area_tree_view_footer_padding: Padding,
+
+  pub working_area_tree_view_footer_spacing: Pixels,
+
   pub status_bar_padding: Padding,
 
   pub mini_account_selector_height: Length,
@@ -204,6 +214,16 @@ impl StyleVariable {
         bottom: 6_f32,
         left: 12_f32,
       },
+      working_area_tree_view_scrollbar_width: Pixels(6_f32),
+      working_area_tree_view_scroller_width: Pixels(6_f32),
+      working_area_tree_view_scrollbar_margin: Pixels(6_f32),
+      working_area_tree_view_footer_padding: Padding {
+        top: 6_f32,
+        right: 12_f32,
+        bottom: 0_f32,
+        left: 12_f32,
+      },
+      working_area_tree_view_footer_spacing: Pixels(6_f32),
       mini_account_selector_height: Length::Fixed(200_f32),
       mini_account_selector_scrollbar_width: Pixels(6_f32),
       mini_account_selector_scroller_width: Pixels(6_f32),

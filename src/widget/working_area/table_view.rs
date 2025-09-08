@@ -3,7 +3,7 @@ use std::{cell::RefCell, cmp::min, rc::Rc, sync::{Arc, Mutex}};
 use iced::{widget::{container, scrollable, text::Wrapping, Button, Checkbox, Column, Container, PickList, Row, Space, Text, TextInput}, Alignment, Element, Length};
 use log::warn;
 
-use crate::{database::{account::Account, Database}, i18n::I18n, style_variable::StyleVariable};
+use crate::{database::{account::Account, Database}, font_icon, i18n::I18n, style_variable::StyleVariable};
 
 const MODULE_PATH: &str = module_path!();
 
@@ -458,7 +458,7 @@ impl TableView {
     Container::new(
       Row::new()
       .push(
-        Button::new(Text::new(i18n.translate("working_area.table_view.footer.add_account")))
+        Button::new(font_icon::person_add_round())
         .on_press(Message::OnAddAccountPress)
       )
       .push(Space::new(Length::Fill, Length::Fixed(3_f32)))

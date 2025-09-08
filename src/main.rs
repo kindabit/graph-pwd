@@ -226,7 +226,10 @@ impl RootWidget {
           }
         }
         else if let widget::WorkingAreaMessage::TreeViewMessage(msg) = msg {
-          if let widget::WorkingAreaTreeViewMessage::OnAccountDetailPress(id) = msg {
+          if let widget::WorkingAreaTreeViewMessage::OnAddAccountPress = msg {
+            LocalAction::Add
+          }
+          else if let widget::WorkingAreaTreeViewMessage::OnAccountDetailPress(id) = msg {
             LocalAction::Detail(id)
           }
           else if let widget::WorkingAreaTreeViewMessage::OnAccountModifyPress(id) = msg {
