@@ -3,7 +3,7 @@ use std::{cell::RefCell, cmp::min, rc::Rc, sync::{Arc, Mutex}};
 use iced::{widget::{container, scrollable, text::Wrapping, Button, Checkbox, Column, Container, PickList, Row, Space, Text, TextInput}, Alignment, Element, Length};
 use log::warn;
 
-use crate::{database::{account::Account, Database}, font_icon, i18n::I18n, style_variable::StyleVariable};
+use crate::{database::{account::Account, Database}, font_icon, i18n::I18n, style_variable::StyleVariable, util::filter_util};
 
 const MODULE_PATH: &str = module_path!();
 
@@ -566,21 +566,7 @@ impl TableView {
     .enumerate()
     .filter(|(_index, account)| {
       if let Some(account) = account {
-        if self.applied_filter.len() == 0 {
-          true
-        }
-        else if account.name().to_lowercase().contains(&self.applied_filter) {
-          true
-        }
-        else if let Some(service) = account.service() && service.to_lowercase().contains(&self.applied_filter) {
-          true
-        }
-        else if let Some(login_name) = account.login_name() && login_name.to_lowercase().contains(&self.applied_filter) {
-          true
-        }
-        else {
-          false
-        }
+        filter_util::is_match(account, &self.applied_filter)
       }
       else {
         if self.hide_deleted_accounts {

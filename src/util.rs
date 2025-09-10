@@ -3,6 +3,7 @@ mod byte_vec_writer;
 pub mod account_util;
 pub mod number_util;
 pub mod tree_util;
+pub mod filter_util;
 
 use std::error::Error;
 

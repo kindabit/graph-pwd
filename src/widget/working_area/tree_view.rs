@@ -1,9 +1,9 @@
 use std::{cell::RefCell, collections::HashSet, rc::Rc, sync::{Arc, Mutex}};
 
-use iced::{widget::{scrollable, Button, Column, Container, Row, Rule, Space, Text}, Alignment, Border, Color, Element, Length, Padding};
+use iced::{widget::{scrollable, Button, Column, Container, Row, Rule, Space, Text, TextInput}, Alignment, Border, Color, Element, Length, Padding};
 use log::warn;
 
-use crate::{database::{account::Account, Database}, font_icon, i18n::I18n, style_variable::StyleVariable};
+use crate::{database::{account::Account, Database}, font_icon, i18n::I18n, style_variable::StyleVariable, util::filter_util};
 
 const MODULE_PATH: &str = module_path!();
 
@@ -15,6 +15,8 @@ struct AccountTree {
 
   pub children: Vec<AccountTree>,
 
+  pub emphasized: bool,
+
 }
 
 pub struct TreeView {
@@ -22,6 +24,10 @@ pub struct TreeView {
   database: Rc<RefCell<Option<Database>>>,
 
   forest: Vec<AccountTree>,
+
+  filter: String,
+
+  applied_filter: String,
 
 }
 
@@ -42,6 +48,10 @@ pub enum Message {
 
   OnAccountDeletePress(usize),
 
+  OnFilterInputInput(String),
+
+  OnFilterInputEnter,
+
 }
 
 impl TreeView {
@@ -50,6 +60,8 @@ impl TreeView {
     let mut instance = Self {
       database,
       forest: Vec::new(),
+      filter: String::new(),
+      applied_filter: String::new(),
     };
     instance.build_forest(&HashSet::new());
     instance
@@ -58,13 +70,7 @@ impl TreeView {
   pub fn update(&mut self, message: Message) {
     match message {
       Message::DatabaseUpdated => {
-        let mut unfolded_accounts = HashSet::new();
-        self.traverse_forest(&mut |account_tree| {
-          if !account_tree.folded {
-            unfolded_accounts.insert(account_tree.account_id);
-          }
-        });
-        self.build_forest(&unfolded_accounts);
+        self.build_forest(&self.collect_unfolded_accounts());
       }
       Message::OnFoldAccountTreePress(id) => {
         self.find_account_tree_mut(id).folded = true;
@@ -84,6 +90,13 @@ impl TreeView {
       Message::OnAccountDeletePress(_id) => {
         warn!("Event {MODULE_PATH}::Message::OnAccountDeletePress should be intercepted");
       }
+      Message::OnFilterInputInput(filter) => {
+        self.filter = filter;
+      }
+      Message::OnFilterInputEnter => {
+        self.applied_filter = self.filter.trim().to_lowercase();
+        self.build_forest(&self.collect_unfolded_accounts());
+      }
     }
   }
 
@@ -91,7 +104,36 @@ impl TreeView {
   pub fn view(&self, i18n: &I18n, style_variable: &Arc<Mutex<StyleVariable>>) -> Element<Message> {
     let mut ele = Column::new();
 
-    // todo: search bar
+    // search bar
+    ele = ele.push(
+      Row::new()
+      .push(
+        Text::new(i18n.translate("working_area.tree_view.search_box.filter"))
+      )
+      .push(
+        TextInput::new(&i18n.translate("working_area.tree_view.search_box.filter_placeholder"), &self.filter)
+        .on_input(Message::OnFilterInputInput)
+        .on_paste(Message::OnFilterInputInput)
+        .on_submit(Message::OnFilterInputEnter)
+        .width(Length::FillPortion(1_u16))
+      )
+      .push(
+        Space::new(
+          { StyleVariable::lock(style_variable).working_area_tree_view_search_box_middle_space_width },
+          Length::Fixed(1_f32)
+        )
+      )
+      .push(
+        Text::new(i18n.translate("working_area.tree_view.search_box.applied_filter"))
+      )
+      .push(
+        Text::new(&self.applied_filter)
+        .width(Length::FillPortion(1_u16))
+      )
+      .width(Length::Fill)
+      .align_y(Alignment::Center)
+      .padding({ StyleVariable::lock(style_variable).working_area_tree_view_search_box_padding })
+    );
 
     // scrollable rows
     let mut rows = Column::new();
@@ -234,9 +276,25 @@ impl TreeView {
         .as_ref()
         .expect(&format!("Account (id = {}) has already been deleted", account_tree.account_id));
 
-      content = content.push(
-        Text::new(account.name().to_string())
-      );
+      {
+        let emphasized = account_tree.emphasized;
+        let style_variable = style_variable.clone();
+        content = content.push(
+          Text::new(account.name().to_string())
+          .style(move |_theme| {
+            if emphasized {
+              iced::widget::text::Style {
+                color: Some({ StyleVariable::lock(&style_variable).working_area_tree_view_emphasized_account_name_color }),
+              }
+            }
+            else {
+              iced::widget::text::Style {
+                ..Default::default()
+              }
+            }
+          })
+        );
+      }
 
       if account.login_name().is_some() || account.service().is_some() {
         let mut service_info = String::new();
@@ -431,51 +489,80 @@ impl TreeView {
   }
 
   fn build_forest(&mut self, unfolded_accounts: &HashSet<usize>) {
-    // initialize forest with root accounts
+    // initialize forest with (not deleted) root accounts
     let mut forest = Vec::new();
     let database = self.database.borrow();
     let database = database.as_ref().expect("database is None in TreeView::new()");
     let accounts = database.accounts();
+
+    let default_folded = self.applied_filter.len() == 0;
+
+    /// 1. return whether this account tree matches filter
+    /// 2. fill `children` with matched nodes
+    fn build_tree<'a>(
+      account_tree: &mut AccountTree,
+      account: &'a Account,
+      unfolded_accounts: &HashSet<usize>,
+      filter: &str,
+      default_folded: bool,
+      accounts: &'a Vec<Option<Account>>,
+     ) -> bool {
+      let self_match = filter_util::is_match(account, filter);
+
+      account_tree.emphasized = self_match && filter.len() > 0;
+
+      let children_ids = account.children_accounts();
+      if children_ids.len() == 0 {
+        return self_match;
+      }
+
+      let mut children = Vec::new();
+      for child_id in children_ids {
+        let mut child_account_tree = AccountTree {
+          account_id: *child_id,
+          folded: !unfolded_accounts.contains(&account.id()) && default_folded,
+          children: Vec::new(),
+          emphasized: false,
+        };
+        let child_account = accounts.get(*child_id)
+          .expect(&format!("Account id ({child_id}) out of bounds"))
+          .as_ref()
+          .expect(&format!("Account (id={child_id}) has already been deleted"));
+        if build_tree(
+          &mut child_account_tree,
+          child_account,
+          unfolded_accounts,
+          filter,
+          default_folded,
+          accounts,
+        ) {
+          children.push(child_account_tree);
+        }
+      }
+      account_tree.children = children;
+
+      self_match || account_tree.children.len() > 0
+    }
+
     for account in accounts {
       if let Some(account) = account.as_ref() && account.parent_account().is_none() {
-        forest.push(AccountTree {
+        let mut account_tree = AccountTree {
           account_id: account.id(),
-          folded: true,
+          folded: !unfolded_accounts.contains(&account.id()) && default_folded,
           children: Vec::new(),
-        });
+          emphasized: false,
+        };
+        if build_tree(
+          &mut account_tree,
+          &account,
+          unfolded_accounts,
+          &self.filter,
+          default_folded,
+          accounts,
+        ) {
+          forest.push(account_tree);
+        }
       }
-    }
-
-    fn build_tree(account_tree: &mut AccountTree, accounts: &Vec<Option<Account>>, unfolded_accounts: &HashSet<usize>) {
-      let account = accounts
-        .get(account_tree.account_id)
-        .expect(&format!("Account id ({}) out of bound", account_tree.account_id))
-        .as_ref()
-        .expect(&format!("Account (id={}) has already been deleted", account_tree.account_id));
-      let children = account.children_accounts();
-      if children.len() == 0 {
-        // these are default values
-        // account_tree.folded = true;
-        // account_tree.children = Vec::new();
-      }
-      else {
-        account_tree.folded = !unfolded_accounts.contains(&account_tree.account_id);
-        account_tree.children = children.iter()
-          .map(|id| {
-            let mut account_tree = AccountTree {
-              account_id: *id,
-              folded: true,
-              children: Vec::new(),
-            };
-            build_tree(&mut account_tree, accounts, unfolded_accounts);
-            account_tree
-          })
-          .collect();
-      }
-    }
-
-    for account_tree in &mut forest {
-      build_tree(account_tree, accounts, &unfolded_accounts);
     }
 
     self.forest = forest;
@@ -491,4 +578,13 @@ impl TreeView {
     traverse_forest_internal(&self.forest, op);
   }
 
+  fn collect_unfolded_accounts(&self) -> HashSet<usize> {
+    let mut unfolded_accounts = HashSet::new();
+    self.traverse_forest(&mut |account_tree| {
+      if !account_tree.folded {
+        unfolded_accounts.insert(account_tree.account_id);
+      }
+    });
+    unfolded_accounts
+  }
 }

@@ -5,7 +5,7 @@ tree mode & tree view
 - (ok) delete
 - (ok) edit
 - (ok) add
-- search
+- (ok)search
 - add new account directly under an existing account
 
 references and parent relationship should carry information
@@ -17,6 +17,8 @@ press Ctrl+S to save
 show details of parent, children, reference and referenced by accounts
 
 logical/soft delete
+
+account id/index in tree mode
 
 # Medium Priority
 

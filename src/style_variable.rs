@@ -28,6 +28,10 @@ pub struct StyleVariable {
 
   pub working_area_table_view_body_deleted_background_1: Background,
 
+  pub working_area_table_view_search_box_padding: Padding,
+
+  pub working_area_table_view_search_box_middle_space_width: Length,
+
   pub working_area_table_view_body_link_cell_text_color: Color,
 
   pub working_area_table_view_scrollbar_width: Pixels,
@@ -42,7 +46,13 @@ pub struct StyleVariable {
 
   pub working_area_table_view_footer_spacing: Pixels,
 
+  pub working_area_tree_view_search_box_padding: Padding,
+
+  pub working_area_tree_view_search_box_middle_space_width: Length,
+
   pub working_area_tree_view_indent_size: f32,
+
+  pub working_area_tree_view_emphasized_account_name_color: Color,
 
   pub working_area_tree_view_service_info_left_padding: f32,
 
@@ -103,10 +113,6 @@ pub struct StyleVariable {
   pub account_detail_dialog_scrollbar_margin: Pixels,
 
   pub account_detail_dialog_scroller_width: Pixels,
-
-  pub working_area_table_view_search_box_padding: Padding,
-
-  pub working_area_table_view_search_box_middle_space_width: Length,
 
   pub common_tooltip_padding: Padding,
 
@@ -176,6 +182,13 @@ impl StyleVariable {
           0_u8,
         )
       ),
+      working_area_table_view_search_box_padding: Padding {
+        top: 0_f32,
+        right: 12_f32,
+        bottom: 6_f32,
+        left: 12_f32,
+      },
+      working_area_table_view_search_box_middle_space_width: Length::Fixed(6_f32),
       working_area_table_view_body_link_cell_text_color: Color::from_rgb8(
         0_u8,
         0_u8,
@@ -192,7 +205,15 @@ impl StyleVariable {
       },
       working_area_table_view_footer_jump_to_input_width: Pixels(96_f32),
       working_area_table_view_footer_spacing: Pixels(6_f32),
+      working_area_tree_view_search_box_padding: Padding {
+        top: 0_f32,
+        right: 12_f32,
+        bottom: 6_f32,
+        left: 12_f32,
+      },
+      working_area_tree_view_search_box_middle_space_width: Length::Fixed(6_f32),
       working_area_tree_view_indent_size: 48_f32,
+      working_area_tree_view_emphasized_account_name_color: Color::from_rgba(1_f32, 0_f32, 0_f32, 1_f32),
       working_area_tree_view_service_info_left_padding: 24_f32,
       working_area_tree_view_actions_left_padding: 24_f32,
       working_area_tree_view_row_height: Length::Fixed(32_f32),
@@ -254,13 +275,6 @@ impl StyleVariable {
       account_detail_dialog_scrollbar_width: Pixels(6_f32),
       account_detail_dialog_scroller_width: Pixels(6_f32),
       account_detail_dialog_scrollbar_margin: Pixels(6_f32),
-      working_area_table_view_search_box_padding: Padding {
-        top: 0_f32,
-        right: 12_f32,
-        bottom: 6_f32,
-        left: 12_f32,
-      },
-      working_area_table_view_search_box_middle_space_width: Length::Fixed(6_f32),
       common_tooltip_padding: Padding {
         top: 6_f32,
         right: 8_f32,
