@@ -34,13 +34,16 @@ pub struct TreeView {
 #[derive(Clone, Debug)]
 pub enum Message {
 
-  DatabaseUpdated,
+  DatabaseUpdated(crate::DatabaseUpdatedType),
 
   OnFoldAccountTreePress(usize),
 
   OnUnfoldAccountTreePress(usize),
 
   OnAddAccountPress,
+
+  // usize: parent account id
+  OnAddChildAccountPress(usize),
 
   OnAccountDetailPress(usize),
 
@@ -69,8 +72,18 @@ impl TreeView {
 
   pub fn update(&mut self, message: Message) {
     match message {
-      Message::DatabaseUpdated => {
-        self.build_forest(&self.collect_unfolded_accounts());
+      Message::DatabaseUpdated(update_type) => {
+        if let crate::DatabaseUpdatedType::NewDatabase = update_type {
+          self.build_forest(&HashSet::new());
+        }
+        else if let crate::DatabaseUpdatedType::NewChildAccount(parent_id) = update_type {
+          let mut unfolded_accounts = self.collect_unfolded_accounts();
+          unfolded_accounts.insert(parent_id);
+          self.build_forest(&unfolded_accounts);
+        }
+        else {
+          self.build_forest(&self.collect_unfolded_accounts());
+        }
       }
       Message::OnFoldAccountTreePress(id) => {
         self.find_account_tree_mut(id).folded = true;
@@ -80,6 +93,9 @@ impl TreeView {
       }
       Message::OnAddAccountPress => {
         warn!("Event {MODULE_PATH}::Message::OnAddAccountPress should be intercepted");
+      }
+      Message::OnAddChildAccountPress(_id) => {
+        warn!("Event {MODULE_PATH}::Message::OnAddChildAccountPress should be intercepted");
       }
       Message::OnAccountDetailPress(_id) => {
         warn!("Event {MODULE_PATH}::Message::OnAccountDetailPress should be intercepted");
@@ -276,10 +292,25 @@ impl TreeView {
         .as_ref()
         .expect(&format!("Account (id = {}) has already been deleted", account_tree.account_id));
 
+      // id
+      content = content.push(
+        Text::new(format!("#{}", account.id()))
+      );
+
+      // name
       {
         let emphasized = account_tree.emphasized;
         let style_variable = style_variable.clone();
-        content = content.push(
+        content = content
+        .push(
+          Container::new(
+            Rule::vertical(4)
+          )
+          .width({ StyleVariable::lock(&style_variable).working_area_tree_view_account_name_left_padding })
+          .height({ StyleVariable::lock(&style_variable).working_area_tree_view_splitter_height })
+          .align_x(Alignment::Center)
+        )
+        .push(
           Text::new(account.name().to_string())
           .style(move |_theme| {
             if emphasized {
@@ -296,6 +327,7 @@ impl TreeView {
         );
       }
 
+      // login name & service
       if account.login_name().is_some() || account.service().is_some() {
         let mut service_info = String::new();
         if let Some(login_name) = account.login_name() {
@@ -331,6 +363,22 @@ impl TreeView {
         .height({ StyleVariable::lock(style_variable).working_area_tree_view_splitter_height })
         .align_x(Alignment::Center)
       )
+      // add child account
+      .push(
+        super::super::common::create_tooltip(
+          self.create_row_button(
+            font_icon::person_add_round(),
+            Message::OnAddChildAccountPress(account_tree.account_id),
+            &style_variable
+          ),
+          i18n.translate("working_area.tree_view.tooltip.add_child_account"),
+          &style_variable,
+        )
+      )
+      .push(Space::new(
+        { StyleVariable::lock(&style_variable).working_area_tree_view_row_button_margin },
+        Length::Fill,
+      ))
       // detail
       .push(
         super::super::common::create_tooltip(
@@ -520,7 +568,7 @@ impl TreeView {
       for child_id in children_ids {
         let mut child_account_tree = AccountTree {
           account_id: *child_id,
-          folded: !unfolded_accounts.contains(&account.id()) && default_folded,
+          folded: !unfolded_accounts.contains(child_id) && default_folded,
           children: Vec::new(),
           emphasized: false,
         };
@@ -587,4 +635,5 @@ impl TreeView {
     });
     unfolded_accounts
   }
+
 }

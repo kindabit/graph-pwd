@@ -1,3 +1,5 @@
+#![allow(unused_braces)]
+
 mod util;
 mod app_error;
 mod logging;
@@ -51,6 +53,15 @@ pub fn main() -> Result<(), Box<dyn Error>> {
   .run()?;
 
   Ok(())
+}
+
+#[derive(Clone, Debug)]
+pub enum DatabaseUpdatedType {
+  NewDatabase,
+  NewRootAccount,
+  NewChildAccount(usize),
+  ModifyAccount(usize),
+  DeleteAccount(usize),
 }
 
 #[derive(Clone, Debug)]
@@ -199,6 +210,7 @@ impl RootWidget {
       Message::WorkingAreaMessage(msg) => {
         enum LocalAction {
           Add,
+          AddChild(usize),
           Detail(usize),
           Modify(usize),
           Delete(usize),
@@ -229,6 +241,9 @@ impl RootWidget {
           if let widget::WorkingAreaTreeViewMessage::OnAddAccountPress = msg {
             LocalAction::Add
           }
+          else if let widget::WorkingAreaTreeViewMessage::OnAddChildAccountPress(parent_id) = msg {
+            LocalAction::AddChild(parent_id)
+          }
           else if let widget::WorkingAreaTreeViewMessage::OnAccountDetailPress(id) = msg {
             LocalAction::Detail(id)
           }
@@ -255,6 +270,19 @@ impl RootWidget {
               self.add_or_edit_account_dialog = Some(widget::AddOrEditAccountDialog::new(
                 widget::AddOrEditAccountDialogMode::Add,
                 None,
+                None,
+              ));
+            }
+            else {
+              panic!("Working area message categorized into LocalAction::Add while database is None");
+            }
+          }
+          LocalAction::AddChild(parent_id) => {
+            if let Some(_) = self.database.borrow().as_ref() {
+              self.add_or_edit_account_dialog = Some(widget::AddOrEditAccountDialog::new(
+                widget::AddOrEditAccountDialogMode::Add,
+                None,
+                Some(parent_id),
               ));
             }
             else {
@@ -278,6 +306,7 @@ impl RootWidget {
               self.add_or_edit_account_dialog = Some(widget::AddOrEditAccountDialog::new(
                 widget::AddOrEditAccountDialogMode::Edit,
                 Some(old_account),
+                None,
               ));
             }
             else {
@@ -374,14 +403,15 @@ impl RootWidget {
           match msg {
             widget::AddOrEditAccountDialogMessage::OnConfirmButtonPress => {
               if add_or_edit_account_dialog.validate() {
-                if let Some(database) = self.database.borrow_mut().as_mut() {
+                let database_update_type = if let Some(database) = self.database.borrow_mut().as_mut() {
                   match add_or_edit_account_dialog.mode() {
                     widget::AddOrEditAccountDialogMode::Add => {
                       // create new account
+                      let parent_account = add_or_edit_account_dialog.parent_account();
                       let mut new_account = Account::new(
                         database.accounts().len(),
                         add_or_edit_account_dialog.name().to_string(),
-                        add_or_edit_account_dialog.parent_account(),
+                        parent_account,
                       );
                       for ref_acc in add_or_edit_account_dialog.reference_accounts() {
                         new_account.add_reference_account(*ref_acc);
@@ -395,7 +425,7 @@ impl RootWidget {
                       }
 
                       // update children accounts
-                      if let Some(parent_account_id) = new_account.parent_account() {
+                      if let Some(parent_account_id) = parent_account {
                         let parent_account = database.accounts_mut().get_mut(parent_account_id);
                         match parent_account {
                           Some(parent_account) => {
@@ -436,6 +466,13 @@ impl RootWidget {
 
                       // push new account into database
                       database.add_account(new_account);
+
+                      if let Some(parent_id) = parent_account {
+                        DatabaseUpdatedType::NewChildAccount(parent_id)
+                      }
+                      else {
+                        DatabaseUpdatedType::NewRootAccount
+                      }
                     }
                     widget::AddOrEditAccountDialogMode::Edit => {
                       // retrieve old account, temporarily "delete" the old account
@@ -517,14 +554,16 @@ impl RootWidget {
                       .replace(old_account) {
                         panic!("Option::replace should return None as old account has been temporarily deleted");
                       }
+
+                      DatabaseUpdatedType::ModifyAccount(old_account_id)
                     }
                   }
                 }
                 else {
                   panic!("received AddOrEditAccountDialogMessage while database is None");
-                }
+                };
                 self.add_or_edit_account_dialog = None;
-                self.broadcast_database_update();
+                self.broadcast_database_update(database_update_type);
               }
               else {
                 match add_or_edit_account_dialog.mode() {
@@ -696,7 +735,7 @@ impl RootWidget {
           String::new(),
           widget::PopupDialogType::Success
         );
-        self.broadcast_database_update();
+        self.broadcast_database_update(DatabaseUpdatedType::NewDatabase);
         Task::none()
       }
 
@@ -764,7 +803,7 @@ impl RootWidget {
           String::new(),
           widget::PopupDialogType::Success
         );
-        self.broadcast_database_update();
+        self.broadcast_database_update(DatabaseUpdatedType::NewDatabase);
         Task::none()
       }
 
@@ -878,7 +917,7 @@ impl RootWidget {
       }
 
       Message::DeleteAccountConfirmed(id) => {
-        {
+        let deleted_account_id = {
           let mut database = self.database.borrow_mut();
           let database = database.as_mut().expect("received WorkingAreaTableViewMessage::OnAddAccountPress while database is None");
           let account = database.accounts_mut().get_mut(id).expect(&format!("Account index ({id}) out of range"));
@@ -898,12 +937,14 @@ impl RootWidget {
                 .as_mut().expect(&format!("Reference account (id={ref_acc}) has already been deleted"))
                 .remove_referenced_by_account(account.id());
             });
+
+            account.id()
           }
           else {
             panic!("Account (id={id}) has already been deleted");
           }
-        }
-        self.broadcast_database_update();
+        };
+        self.broadcast_database_update(DatabaseUpdatedType::DeleteAccount(deleted_account_id));
         Task::none()
       }
 
@@ -993,8 +1034,8 @@ impl RootWidget {
 
   /// there may be more widgets which need to be informed when database is updated,
   /// this associated function should be the only entrance of this logic
-  fn broadcast_database_update(&mut self) {
-    self.working_area.update(widget::WorkingAreaMessage::DatabaseUpdated);
+  fn broadcast_database_update(&mut self, update_type: DatabaseUpdatedType) {
+    self.working_area.update(widget::WorkingAreaMessage::DatabaseUpdated(update_type));
   }
 
 }

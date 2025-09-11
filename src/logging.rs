@@ -32,7 +32,7 @@ pub fn setup_logging() -> Result<(), Box<dyn std::error::Error>> {
         message
       ))
     })
-    .level(log::LevelFilter::Debug)
+    .level(log::LevelFilter::Info)
     .chain(fern::DateBased::new(
       "./log/client.log.",
       "%F"

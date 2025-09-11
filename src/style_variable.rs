@@ -52,6 +52,8 @@ pub struct StyleVariable {
 
   pub working_area_tree_view_indent_size: f32,
 
+  pub working_area_tree_view_account_name_left_padding: f32,
+
   pub working_area_tree_view_emphasized_account_name_color: Color,
 
   pub working_area_tree_view_service_info_left_padding: f32,
@@ -213,6 +215,7 @@ impl StyleVariable {
       },
       working_area_tree_view_search_box_middle_space_width: Length::Fixed(6_f32),
       working_area_tree_view_indent_size: 48_f32,
+      working_area_tree_view_account_name_left_padding: 24_f32,
       working_area_tree_view_emphasized_account_name_color: Color::from_rgba(1_f32, 0_f32, 0_f32, 1_f32),
       working_area_tree_view_service_info_left_padding: 24_f32,
       working_area_tree_view_actions_left_padding: 24_f32,

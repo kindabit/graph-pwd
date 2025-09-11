@@ -33,7 +33,7 @@ pub struct TableView {
 #[derive(Clone, Debug)]
 pub enum Message {
 
-  DatabaseUpdated,
+  DatabaseUpdated(crate::DatabaseUpdatedType),
 
   OnFilterInputInput(String),
 
@@ -95,7 +95,7 @@ impl TableView {
 
   pub fn update(&mut self, message: Message) {
     match message {
-      Message::DatabaseUpdated => {
+      Message::DatabaseUpdated(update_type) => {
         self.reset_page();
       }
       Message::OnFilterInputInput(filter) => {

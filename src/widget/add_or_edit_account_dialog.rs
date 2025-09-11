@@ -102,7 +102,7 @@ pub enum Message {
 
 impl AddOrEditAccountDialog {
 
-  pub fn new(mode: AddOrEditAccountDialogMode, old_account: Option<&Account>) -> Self {
+  pub fn new(mode: AddOrEditAccountDialogMode, old_account: Option<&Account>, parent_account: Option<usize>) -> Self {
     match mode {
       AddOrEditAccountDialogMode::Add => {
         match old_account {
@@ -114,7 +114,7 @@ impl AddOrEditAccountDialog {
               mode,
               id: None,
               account_selector: MiniAccountSelector::new(),
-              parent_account: None,
+              parent_account: parent_account,
               parent_account_search: String::new(),
               reference_accounts: BTreeSet::new(),
               reference_accounts_search: String::new(),

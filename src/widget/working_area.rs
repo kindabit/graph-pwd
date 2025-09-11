@@ -37,7 +37,7 @@ pub enum Message {
 
   TreeViewMessage(tree_view::Message),
 
-  DatabaseUpdated,
+  DatabaseUpdated(crate::DatabaseUpdatedType),
 
   TreeModeUpdated(bool),
 
@@ -83,7 +83,7 @@ impl WorkingArea {
           panic!("Received TreeViewMessage while child is not TreeView");
         }
       }
-      Message::DatabaseUpdated => {
+      Message::DatabaseUpdated(update_type) => {
         let database = self.database.borrow();
         let database = database.as_ref();
 
@@ -98,10 +98,10 @@ impl WorkingArea {
               }
             },
             WorkingAreaChild::TableView(table_view) => {
-              table_view.update(table_view::Message::DatabaseUpdated);
+              table_view.update(table_view::Message::DatabaseUpdated(update_type));
             },
             WorkingAreaChild::TreeView(tree_view) => {
-              tree_view.update(tree_view::Message::DatabaseUpdated);
+              tree_view.update(tree_view::Message::DatabaseUpdated(update_type));
             },
           }
         }
