@@ -1,15 +1,17 @@
 use std::sync::{Arc, Mutex};
 
-use iced::{widget::{button, row, text, toggler}, Alignment, Element, Length};
+use iced::{widget::{button, combo_box, row, text, toggler, ComboBox, Space}, Alignment, Element, Length};
 use log::warn;
 
-use crate::{i18n::I18n, style_variable::StyleVariable};
+use crate::{font_icon, i18n::{I18n, Language}, style_variable::StyleVariable};
 
 const MODULE_PATH: &str = module_path!();
 
 pub struct Header {
 
   tree_mode: bool,
+
+  available_languages: combo_box::State<Language>,
 
 }
 
@@ -21,12 +23,14 @@ pub enum Message {
   OnSaveButtonPress,
   OnSaveAsButtonPress,
   OnDebugPrintDatabaseButtonPress,
+  OnLanguageSelected(Language),
 }
 
 impl Header {
-  pub fn new(tree_mode: bool) -> Self {
+  pub fn new(tree_mode: bool, available_languages: Vec<Language>) -> Self {
     Self {
       tree_mode,
+      available_languages: combo_box::State::new(available_languages),
     }
   }
 
@@ -50,6 +54,9 @@ impl Header {
       Message::OnDebugPrintDatabaseButtonPress => {
         warn!("Event {MODULE_PATH}::Message::OnDebugPrintDatabaseButtonPress should be intercepted");
       }
+      Message::OnLanguageSelected(_) => {
+        warn!("Event {MODULE_PATH}::Message::OnLanguageSelected should be intercepted");
+      }
     }
   }
 
@@ -71,6 +78,24 @@ impl Header {
     let save_as_button = button(text(i18n.translate("header.save_as_button")))
       .on_press(Message::OnSaveAsButtonPress);
 
+    let space = Space::new(Length::Fill, Length::Fixed(4_f32));
+
+    let language_label = font_icon::language_round();
+
+    let language_combobox = ComboBox::new(
+      &self.available_languages,
+      &i18n.translate("header.language_combobox.placeholder"),
+      Some(
+        self.available_languages
+          .options()
+          .iter()
+          .find(|al| al.code() == i18n.current_language())
+          .expect("Fail to find current language in available languages")
+      ),
+      Message::OnLanguageSelected
+    )
+    .width(180);
+
     // let debug_print_database_button = button(text("DBG PRT DB"))
     //   .on_press(Message::OnDebugPrintDatabaseButtonPress);
 
@@ -82,6 +107,9 @@ impl Header {
       save_button,
       save_as_button,
       // debug_print_database_button,
+      space,
+      language_label,
+      language_combobox,
     ];
 
     let style_variable = StyleVariable::lock(style_variable);

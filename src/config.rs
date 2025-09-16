@@ -15,6 +15,12 @@ impl Config {
     Ok(config)
   }
 
+  pub fn save(&self) -> Result<(), Box<dyn Error>> {
+    let config_string = serde_yml::to_string(self)?;
+    fs::write("./config.yaml", config_string)?;
+    Ok(())
+  }
+
   pub fn get_language(&self) -> &str {
     &self.language
   }

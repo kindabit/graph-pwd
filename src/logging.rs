@@ -5,7 +5,7 @@ use log::error;
 
 use crate::app_error::AppError;
 
-pub fn setup_logging() -> Result<(), Box<dyn std::error::Error>> {
+pub fn setup_logging(daemon: bool) -> Result<(), Box<dyn std::error::Error>> {
   match fs::metadata("./log") {
     Ok(meta) =>
       if !meta.is_dir() {
@@ -34,7 +34,7 @@ pub fn setup_logging() -> Result<(), Box<dyn std::error::Error>> {
     })
     .level(log::LevelFilter::Info)
     .chain(fern::DateBased::new(
-      "./log/client.log.",
+      if daemon { "./log/daemon.log." } else { "./log/client.log." },
       "%F"
     ))
     .chain(std::io::stdout())

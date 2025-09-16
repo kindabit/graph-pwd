@@ -32,3 +32,7 @@ pub fn delete_round() -> Text<'static> {
 pub fn person_add_round() -> Text<'static> {
   Text::new("\u{e7fe}").font(Font::with_name("Material Icons Round"))
 }
+
+pub fn language_round() -> Text<'static> {
+  Text::new("\u{e894}").font(Font::with_name("Material Icons Round"))
+}

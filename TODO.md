@@ -2,8 +2,6 @@
 
 references and parent relationship should carry information
 
-select and change language
-
 press Ctrl+S to save
 
 show details of parent, children, reference and referenced by accounts

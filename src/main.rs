@@ -10,49 +10,114 @@ mod style_variable;
 mod database;
 mod widget;
 
-use std::{cell::RefCell, error::Error, rc::Rc, sync::{Arc, Mutex}};
+use std::{cell::RefCell, env, error::Error, process::{Command, ExitCode}, rc::Rc, sync::{Arc, Mutex}};
 
 use config::Config;
 use i18n::I18n;
-use iced::{widget::column, window::Position, Element, Font, Length, Task};
+use iced::{application::Boot, widget::column, window::Position, Element, Font, Length, Task};
 use log::{debug, info};
 use logging::setup_logging;
 
-use crate::{database::{account::Account, Database}, style_variable::StyleVariable, util::modal};
+use crate::{database::{account::Account, Database}, i18n::Language, style_variable::StyleVariable, util::modal};
 
-pub fn main() -> Result<(), Box<dyn Error>> {
-  setup_logging()?;
+const EXIT_CODE_RESTART: u8 = 2;
 
-  let app =iced::application(
-    || {
-      let config = Config::new().expect("fail to initialize config");
-      debug!("config: {config:?}");
+struct RootWidgetBoot {
 
-      let i18n = I18n::new(&config).expect("fail to initialize i18n");
-      debug!("i18n: {i18n:?}");
+  exit_code: Rc<RefCell<u8>>,
 
-      (
-        RootWidget::new(config, i18n),
-        Task::none(),
-      )
-    },
-    RootWidget::update,
-    RootWidget::view
-  )
-  .font(include_bytes!("./assets/思源黑体.otf"))
-  .default_font(Font::with_name("思源黑体"));
+}
 
-  font_icon::load(app)
-  .title("Graph PWD")
-  .window(iced::window::Settings {
-    position: Position::Specific([0_f32, 0_f32].into()),
-    size: [800_f32, 600_f32].into(),
-    maximized: true,
-    ..Default::default()
-  })
-  .run()?;
+impl RootWidgetBoot {
 
-  Ok(())
+  pub fn new(exit_code: Rc<RefCell<u8>>) -> Self {
+    Self {
+      exit_code,
+    }
+  }
+
+}
+
+impl Boot<RootWidget, Message> for RootWidgetBoot {
+
+  fn boot(&self) -> (RootWidget, Task<Message>) {
+    let config = Config::new().expect("fail to initialize config");
+    debug!("config: {config:?}");
+
+    let i18n = I18n::new(&config).expect("fail to initialize i18n");
+    debug!("i18n: {i18n:?}");
+
+    (
+      RootWidget::new(self.exit_code.clone(), config, i18n),
+      Task::none(),
+    )
+  }
+
+}
+
+pub fn main() -> Result<ExitCode, Box<dyn Error>> {
+  if env::args().any(|arg| arg.eq("client")) {
+    let exit_code = Rc::new(RefCell::new(0_u8));
+
+    setup_logging(false)?;
+
+    let app = iced::application(
+      RootWidgetBoot::new(exit_code.clone()),
+      RootWidget::update,
+      RootWidget::view
+    )
+    .font(include_bytes!("./assets/思源黑体.otf"))
+    .default_font(Font::with_name("思源黑体"));
+
+    font_icon::load(app)
+    .title("Graph PWD")
+    .window(iced::window::Settings {
+      position: Position::Specific([0_f32, 0_f32].into()),
+      size: [800_f32, 600_f32].into(),
+      maximized: true,
+      ..Default::default()
+    })
+    .run()?;
+
+    let exit_code = *exit_code.borrow();
+
+    info!("Exiting with exit code {exit_code}");
+
+    Ok(ExitCode::from(exit_code))
+  }
+  else {
+    setup_logging(true)?;
+
+    let exit_code = loop {
+      let exe_path = env::current_exe().expect("Fail to get path of current executable file");
+
+      info!("Launching program {exe_path:?}");
+
+      let mut child = Command::new(exe_path.as_os_str()).arg("client").spawn()?;
+
+      info!("Waiting for child to exit");
+
+      let exit_status = child.wait()?;
+
+      info!("Child exited with status {exit_status:?}");
+
+      if let Some(code) = exit_status.code() {
+        if code == EXIT_CODE_RESTART as i32 {
+          info!("Exit code {code} indicates a restart is needed");
+        }
+        else {
+          break code as u8
+        }
+      }
+      else {
+        break 0_u8
+      }
+    };
+
+    info!("Exiting daemon process with exit code {exit_code}");
+
+    Ok(ExitCode::from(exit_code))
+  }
 }
 
 #[derive(Clone, Debug)]
@@ -100,6 +165,8 @@ pub enum Message {
 
   DeleteAccountConfirmed(usize),
 
+  ChangeLanguageConfirmed(Language),
+
   Noop,
 
 }
@@ -135,14 +202,17 @@ struct RootWidget {
   // todo: this is awkward
   temp_password: String,
 
+  exit_code: Rc<RefCell<u8>>,
+
 }
 
 impl RootWidget {
 
-  pub fn new(config: Config, i18n: I18n) -> Self {
+  pub fn new(exit_code: Rc<RefCell<u8>>, config: Config, i18n: I18n) -> Self {
     let database = Rc::new(RefCell::new(None));
 
     let initial_tree_mode = config.tree_mode();
+    let available_languages = i18n.available_languages().to_vec();
 
     Self {
       config,
@@ -165,13 +235,15 @@ impl RootWidget {
 
       main_password_dialog: None,
 
-      header: widget::Header::new(initial_tree_mode),
+      header: widget::Header::new(initial_tree_mode, available_languages),
 
       working_area: widget::WorkingArea::new(database.clone(), initial_tree_mode),
 
       status_bar: widget::StatusBar::new(database.clone()),
 
       temp_password: String::new(),
+
+      exit_code,
     }
   }
 
@@ -200,6 +272,17 @@ impl RootWidget {
           widget::HeaderMessage::OnDebugPrintDatabaseButtonPress => {
             let db = &self.database;
             info!("{db:?}");
+            Task::none()
+          }
+          widget::HeaderMessage::OnLanguageSelected(language) => {
+            if language.code() != self.i18n.current_language() {
+              self.add_confirm_dialog(
+                self.i18n.translate("confirm_dialog.title.change_language"),
+                self.i18n.translate("confirm_dialog.content.change_language"),
+                Message::ChangeLanguageConfirmed(language),
+                Message::Noop
+              );
+            }
             Task::none()
           }
         }
@@ -946,6 +1029,19 @@ impl RootWidget {
         };
         self.broadcast_database_update(DatabaseUpdatedType::DeleteAccount(deleted_account_id));
         Task::none()
+      }
+
+      Message::ChangeLanguageConfirmed(language) => {
+        self.config.set_language(language.code());
+        match self.config.save() {
+          Ok(_) => {
+            *self.exit_code.borrow_mut() = EXIT_CODE_RESTART;
+            iced::exit()
+          },
+          Err(err) => {
+            panic!("Fail to change language: {err:?}");
+          },
+        }
       }
 
       Message::Noop => {
