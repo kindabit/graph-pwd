@@ -14,7 +14,7 @@ use std::{cell::RefCell, env, error::Error, process::{Command, ExitCode}, rc::Rc
 
 use config::Config;
 use i18n::I18n;
-use iced::{application::Boot, widget::column, window::Position, Element, Font, Length, Task};
+use iced::{application::Boot, keyboard::{self, key::Named}, widget::column, window::Position, Element, Font, Length, Task};
 use log::{debug, info};
 use logging::setup_logging;
 
@@ -76,6 +76,26 @@ pub fn main() -> Result<ExitCode, Box<dyn Error>> {
       size: [800_f32, 600_f32].into(),
       maximized: true,
       ..Default::default()
+    })
+    .subscription(|_state| {
+      keyboard::on_key_press(|key, modifiers| {
+        match key {
+          keyboard::Key::Named(_named) => {
+            None
+          }
+          keyboard::Key::Character(ch) => {
+            if modifiers.control() && ch.eq_ignore_ascii_case("s") {
+              Some(Message::SaveDatabase)
+            }
+            else {
+              None
+            }
+          },
+          keyboard::Key::Unidentified => {
+            None
+          },
+        }
+      })
     })
     .run()?;
 
@@ -166,6 +186,8 @@ pub enum Message {
   DeleteAccountConfirmed(usize),
 
   ChangeLanguageConfirmed(Language),
+
+
 
   Noop,
 
