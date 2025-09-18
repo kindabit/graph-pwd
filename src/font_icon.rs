@@ -36,3 +36,7 @@ pub fn person_add_round() -> Text<'static> {
 pub fn language_round() -> Text<'static> {
   Text::new("\u{e894}").font(Font::with_name("Material Icons Round"))
 }
+
+pub fn help_outline_round() -> Text<'static> {
+  Text::new("\u{e8fd}").font(Font::with_name("Material Icons Round"))
+}

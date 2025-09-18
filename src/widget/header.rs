@@ -1,6 +1,6 @@
 use std::sync::{Arc, Mutex};
 
-use iced::{widget::{button, combo_box, row, text, toggler, ComboBox, Space}, Alignment, Element, Length};
+use iced::{widget::{button, combo_box, row, text, toggler, Button, ComboBox, Space}, Alignment, Color, Element, Length, Padding};
 use log::warn;
 
 use crate::{font_icon, i18n::{I18n, Language}, style_variable::StyleVariable};
@@ -23,6 +23,7 @@ pub enum Message {
   OnSaveButtonPress,
   OnSaveAsButtonPress,
   OnDebugPrintDatabaseButtonPress,
+  OnHelpButtonPress,
   OnLanguageSelected(Language),
 }
 
@@ -53,6 +54,9 @@ impl Header {
       }
       Message::OnDebugPrintDatabaseButtonPress => {
         warn!("Event {MODULE_PATH}::Message::OnDebugPrintDatabaseButtonPress should be intercepted");
+      }
+      Message::OnHelpButtonPress => {
+        warn!("Event {MODULE_PATH}::Message::OnHelpButtonPress should be intercepted");
       }
       Message::OnLanguageSelected(_) => {
         warn!("Event {MODULE_PATH}::Message::OnLanguageSelected should be intercepted");
@@ -99,6 +103,44 @@ impl Header {
     // let debug_print_database_button = button(text("DBG PRT DB"))
     //   .on_press(Message::OnDebugPrintDatabaseButtonPress);
 
+    let mut help_button = Button::new(
+      font_icon::help_outline_round().size({ StyleVariable::lock(style_variable).header_help_button_font_size })
+    )
+    .padding({ StyleVariable::lock(style_variable).header_help_button_padding })
+    .on_press(Message::OnHelpButtonPress);
+
+    {
+      let style_variable = style_variable.clone();
+      help_button = help_button.style(move |_theme, status| {
+        match status {
+          button::Status::Active => {
+            iced::widget::button::Style {
+              background: Some({ StyleVariable::lock(&style_variable).header_help_button_background }),
+              text_color: Color::WHITE,
+              ..Default::default()
+            }
+          }
+          button::Status::Hovered => {
+            iced::widget::button::Style {
+              background: Some({ StyleVariable::lock(&style_variable).header_help_button_hovered_background }),
+              text_color: Color::WHITE,
+              ..Default::default()
+            }
+          }
+          button::Status::Pressed => {
+            iced::widget::button::Style {
+              background: Some({ StyleVariable::lock(&style_variable).header_help_button_pressed_background }),
+              text_color: Color::WHITE,
+              ..Default::default()
+            }
+          }
+          button::Status::Disabled => {
+            panic!("Help button is not expected to be disabled");
+          }
+        }
+      });
+    }
+
     let mut header_row = row![
       tree_mode_label,
       tree_mode_toggler,
@@ -108,6 +150,7 @@ impl Header {
       save_as_button,
       // debug_print_database_button,
       space,
+      help_button,
       language_label,
       language_combobox,
     ];

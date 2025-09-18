@@ -8,6 +8,16 @@ pub struct StyleVariable {
 
   pub header_spacing: f32,
 
+  pub header_help_button_font_size: f32,
+
+  pub header_help_button_padding: Padding,
+
+  pub header_help_button_background: Background,
+
+  pub header_help_button_hovered_background: Background,
+
+  pub header_help_button_pressed_background: Background,
+
   pub working_area_table_view_head_padding: Padding,
 
   pub working_area_table_view_head_spacing: Pixels,
@@ -134,6 +144,16 @@ impl StyleVariable {
         left: 12_f32,
       },
       header_spacing: 6_f32,
+      header_help_button_font_size: 20_f32,
+      header_help_button_padding: Padding {
+        top: 4_f32,
+        right: 8_f32,
+        bottom: 4_f32,
+        left: 8_f32,
+      },
+      header_help_button_background: Background::Color(Color::TRANSPARENT),
+      header_help_button_hovered_background: Background::Color(Color { r: 1_f32, g: 1_f32, b: 1_f32, a: 0.2_f32 }),
+      header_help_button_pressed_background: Background::Color(Color { r: 1_f32, g: 1_f32, b: 1_f32, a: 0.1_f32 }),
       working_area_table_view_head_padding: Padding {
         top: 6_f32,
         right: 12_f32,

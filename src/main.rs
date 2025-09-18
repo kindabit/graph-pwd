@@ -161,6 +161,7 @@ pub enum Message {
   AccountDetailDialogMessage(widget::AccountDetailDialogMessage),
   NewMainPasswordDialogMessage(widget::NewMainPasswordDialogMessage),
   MainPasswordDialogMessage(widget::MainPasswordDialogMessage),
+  HelpDialogMessage(widget::HelpDialogMessage),
 
   NewDatabase,
   NewDatabaseConfirmed,
@@ -187,8 +188,6 @@ pub enum Message {
 
   ChangeLanguageConfirmed(Language),
 
-
-
   Noop,
 
 }
@@ -214,6 +213,8 @@ struct RootWidget {
   new_main_password_dialog: Option<widget::NewMainPasswordDialog>,
 
   main_password_dialog: Option<widget::MainPasswordDialog>,
+
+  help_dialog: Option<widget::HelpDialog>,
 
   header: widget::Header,
 
@@ -257,6 +258,8 @@ impl RootWidget {
 
       main_password_dialog: None,
 
+      help_dialog: None,
+
       header: widget::Header::new(initial_tree_mode, available_languages),
 
       working_area: widget::WorkingArea::new(database.clone(), initial_tree_mode),
@@ -294,6 +297,10 @@ impl RootWidget {
           widget::HeaderMessage::OnDebugPrintDatabaseButtonPress => {
             let db = &self.database;
             info!("{db:?}");
+            Task::none()
+          }
+          widget::HeaderMessage::OnHelpButtonPress => {
+            self.help_dialog = Some(widget::HelpDialog::new());
             Task::none()
           }
           widget::HeaderMessage::OnLanguageSelected(language) => {
@@ -772,6 +779,15 @@ impl RootWidget {
         }
       }
 
+      Message::HelpDialogMessage(msg) => {
+        match msg {
+          widget::HelpDialogMessage::OnCloseButtonPress => {
+            self.help_dialog.take();
+            Task::none()
+          }
+        }
+      }
+
       Message::NewDatabase => {
         if self.database.borrow().is_some() {
           self.add_confirm_dialog(
@@ -1132,6 +1148,13 @@ impl RootWidget {
       modal(
         content,
         main_password_dialog.view(&self.i18n).map(Message::MainPasswordDialogMessage),
+        Message::Noop,
+      )
+    }
+    else if let Some(help_dialog) = &self.help_dialog {
+      modal(
+        content,
+        help_dialog.view(&self.i18n).map(Message::HelpDialogMessage),
         Message::Noop,
       )
     }
