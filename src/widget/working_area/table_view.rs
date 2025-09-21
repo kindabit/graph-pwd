@@ -1,9 +1,9 @@
 use std::{cell::RefCell, cmp::min, rc::Rc, sync::{Arc, Mutex}};
 
-use iced::{widget::{container, scrollable, text::Wrapping, Button, Checkbox, Column, Container, MouseArea, PickList, Row, Space, Text, TextInput}, Alignment, Element, Length};
+use iced::{widget::{container, scrollable, text::Wrapping, tooltip, Button, Checkbox, Column, Container, MouseArea, PickList, Row, Space, Text, TextInput, Tooltip}, Alignment, Element, Length};
 use log::warn;
 
-use crate::{database::{account::Account, Database}, font_icon, i18n::I18n, style_variable::StyleVariable, util::filter_util};
+use crate::{database::{account::Account, Database}, font_icon, i18n::I18n, style_variable::StyleVariable, util::{account_util, filter_util}};
 
 const MODULE_PATH: &str = module_path!();
 
@@ -339,14 +339,23 @@ impl TableView {
           )
           .push(
             match account.parent_account() {
-              Some(parent_account) => {
-                self.body_text_cell_common(format!("{}", parent_account))
+              Some(parent_account_id) => {
+                let parent_account_name = account_util::guarantee_account_from_database(parent_account_id, database).name().to_owned();
+                Element::from(
+                  super::super::common::create_tooltip(
+                    self.body_text_cell_common(&parent_account_name).width(Self::COLUMN_WIDTH[1]),
+                    parent_account_name,
+                    style_variable
+                  )
+                )
               }
               None => {
-                self.body_text_cell_common("-")
+                Element::from(
+                  self.body_text_cell_common("-")
+                  .width(Self::COLUMN_WIDTH[1])
+                )
               }
             }
-            .width(Self::COLUMN_WIDTH[1])
           )
           .push(
             self.body_link_cell_common(
@@ -373,30 +382,49 @@ impl TableView {
             )
           )
           .push(
-            self.body_text_cell_common(account.name().to_string())
-            .width(Self::COLUMN_WIDTH[5])
+            super::super::common::create_tooltip(
+              self.body_text_cell_common(account.name().to_string()).width(Self::COLUMN_WIDTH[5]),
+              account.name().to_string(),
+              style_variable
+            )
           )
           .push(
             match account.service() {
               Some(service) => {
-                self.body_text_cell_common(service)
+                Element::from(
+                  super::super::common::create_tooltip(
+                    self.body_text_cell_common(service).width(Self::COLUMN_WIDTH[6]),
+                    service.to_owned(),
+                    style_variable
+                  )
+                )
               }
               None => {
-                self.body_text_cell_common("-")
+                Element::from(
+                  self.body_text_cell_common("-")
+                  .width(Self::COLUMN_WIDTH[6])
+                )
               }
             }
-            .width(Self::COLUMN_WIDTH[6])
           )
           .push(
             match account.login_name() {
               Some(login_name) => {
-                self.body_text_cell_common(login_name)
+                Element::from(
+                  super::super::common::create_tooltip(
+                    self.body_text_cell_common(login_name).width(Self::COLUMN_WIDTH[7]),
+                    login_name.to_owned(),
+                    style_variable
+                  )
+                )
               }
               None => {
-                self.body_text_cell_common("-")
+                Element::from(
+                  self.body_text_cell_common("-")
+                  .width(Self::COLUMN_WIDTH[7])
+                )
               }
             }
-            .width(Self::COLUMN_WIDTH[7])
           )
           .push(
             match account.password() {
@@ -412,13 +440,21 @@ impl TableView {
           .push(
             match account.comment() {
               Some(comment) => {
-                self.body_text_cell_common(comment)
+                Element::from(
+                  super::super::common::create_tooltip(
+                    self.body_text_cell_common(comment).width(Self::COLUMN_WIDTH[9]),
+                    comment.to_owned(),
+                    style_variable
+                  )
+                )
               }
               None => {
-                self.body_text_cell_common("-")
+                Element::from(
+                  self.body_text_cell_common("-")
+                  .width(Self::COLUMN_WIDTH[9])
+                )
               }
             }
-            .width(Self::COLUMN_WIDTH[9])
           );
 
           let style_variable = StyleVariable::lock(style_variable);

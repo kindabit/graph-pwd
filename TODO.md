@@ -6,6 +6,8 @@ show details of parent, children, reference and referenced by accounts
 
 trash bin
 
+add switches to censor/uncensor password
+
 # Medium Priority
 
 create backup before loading a database
@@ -19,6 +21,8 @@ set up CI pipeline on github
 elaborate pagination control (what?)
 
 icons, maybe I need to load two sets of fonts.
+
+test
 
 # Low Priority
 
