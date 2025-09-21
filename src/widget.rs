@@ -2,6 +2,7 @@ mod popup_dialog;
 mod confirm_dialog;
 mod add_or_edit_account_dialog;
 mod account_detail_dialog;
+mod account_list_dialog;
 mod new_main_password_dialog;
 mod main_password_dialog;
 mod help_dialog;
@@ -24,6 +25,9 @@ pub use add_or_edit_account_dialog::Message as AddOrEditAccountDialogMessage;
 
 pub use account_detail_dialog::AccountDetailDialog;
 pub use account_detail_dialog::Message as AccountDetailDialogMessage;
+
+pub use account_list_dialog::AccountListDialog;
+pub use account_list_dialog::Message as AccountListDialogMessage;
 
 pub use new_main_password_dialog::NewMainPasswordDialog;
 pub use new_main_password_dialog::Message as NewMainPasswordDialogMessage;

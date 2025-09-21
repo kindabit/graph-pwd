@@ -1,6 +1,6 @@
 use std::{cell::RefCell, cmp::min, rc::Rc, sync::{Arc, Mutex}};
 
-use iced::{widget::{container, scrollable, text::Wrapping, Button, Checkbox, Column, Container, PickList, Row, Space, Text, TextInput}, Alignment, Element, Length};
+use iced::{widget::{container, scrollable, text::Wrapping, Button, Checkbox, Column, Container, MouseArea, PickList, Row, Space, Text, TextInput}, Alignment, Element, Length};
 use log::warn;
 
 use crate::{database::{account::Account, Database}, font_icon, i18n::I18n, style_variable::StyleVariable, util::filter_util};
@@ -40,6 +40,12 @@ pub enum Message {
   OnFilterInputEnter,
 
   OnHideDeletedAccountsToggle(bool),
+
+  OnChildrenAccountPress(usize),
+
+  OnReferenceAccountPress(usize),
+
+  OnReferencedByAccountPress(usize),
 
   OnAccountDetailPress(usize),
 
@@ -108,6 +114,15 @@ impl TableView {
       Message::OnHideDeletedAccountsToggle(value) => {
         self.hide_deleted_accounts = value;
         self.reset_page();
+      }
+      Message::OnChildrenAccountPress(_id) => {
+        warn!("Event {MODULE_PATH}::Message::OnChildrenAccountPress should be intercepted");
+      }
+      Message::OnReferenceAccountPress(_id) => {
+        warn!("Event {MODULE_PATH}::Message::OnReferenceAccountPress should be intercepted");
+      }
+      Message::OnReferencedByAccountPress(_id) => {
+        warn!("Event {MODULE_PATH}::Message::OnReferencedByAccountPress should be intercepted");
       }
       Message::OnAccountDetailPress(_id) => {
         warn!("Event {MODULE_PATH}::Message::OnAccountDetailPress should be intercepted");
@@ -334,16 +349,28 @@ impl TableView {
             .width(Self::COLUMN_WIDTH[1])
           )
           .push(
-            self.body_link_cell_common(format!("{}", account.children_accounts().len()), style_variable)
-            .width(Self::COLUMN_WIDTH[2])
+            self.body_link_cell_common(
+              account.children_accounts().len().to_string(),
+              style_variable,
+              Self::COLUMN_WIDTH[2],
+              Message::OnChildrenAccountPress(account.id())
+            )
           )
           .push(
-            self.body_link_cell_common(format!("{}", account.reference_accounts().len()), style_variable)
-            .width(Self::COLUMN_WIDTH[3])
+            self.body_link_cell_common(
+              account.reference_accounts().len().to_string(),
+              style_variable,
+              Self::COLUMN_WIDTH[3],
+              Message::OnReferenceAccountPress(account.id())
+            )
           )
           .push(
-            self.body_link_cell_common(format!("{}", account.referenced_by_accounts().len()), style_variable)
-            .width(Self::COLUMN_WIDTH[4])
+            self.body_link_cell_common(
+              account.referenced_by_accounts().len().to_string(),
+              style_variable,
+              Self::COLUMN_WIDTH[4],
+              Message::OnReferencedByAccountPress(account.id())
+            )
           )
           .push(
             self.body_text_cell_common(account.name().to_string())
@@ -526,22 +553,27 @@ impl TableView {
     .clip(true)
   }
 
-  fn body_link_cell_common(&self, s: impl Into<String>, style_variable: &Arc<Mutex<StyleVariable>>) -> Container<Message> {
+  fn body_link_cell_common(&self, s: impl Into<String>, style_variable: &Arc<Mutex<StyleVariable>>, width: Length, message: Message) -> MouseArea<Message> {
     let style_variable = style_variable.clone();
 
-    container(
-      Text::new(s.into())
-      .wrapping(Wrapping::None)
-      .style(move |_theme| {
-        use iced::widget::text::Style;
-        Style {
-          color: Some(StyleVariable::lock(&style_variable).working_area_table_view_body_link_cell_text_color)
-        }
-      })
+    MouseArea::new(
+      container(
+        Text::new(s.into())
+        .wrapping(Wrapping::None)
+        .style(move |_theme| {
+          use iced::widget::text::Style;
+          Style {
+            color: Some(StyleVariable::lock(&style_variable).working_area_link_color)
+          }
+        })
+      )
+      .height(Length::Shrink)
+      .width(width)
+      .align_y(Alignment::Center)
+      .clip(true)
     )
-    .height(Length::Shrink)
-    .align_y(Alignment::Center)
-    .clip(true)
+    .on_release(message)
+    .interaction(iced::mouse::Interaction::Pointer)
   }
 
   fn reset_page(&mut self) {

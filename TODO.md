@@ -4,7 +4,7 @@ references and parent relationship should carry information
 
 show details of parent, children, reference and referenced by accounts
 
-logical/soft delete
+trash bin
 
 # Medium Priority
 

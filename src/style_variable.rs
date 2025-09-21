@@ -18,6 +18,8 @@ pub struct StyleVariable {
 
   pub header_help_button_pressed_background: Background,
 
+  pub working_area_link_color: Color,
+
   pub working_area_table_view_head_padding: Padding,
 
   pub working_area_table_view_head_spacing: Pixels,
@@ -42,8 +44,6 @@ pub struct StyleVariable {
 
   pub working_area_table_view_search_box_middle_space_width: Length,
 
-  pub working_area_table_view_body_link_cell_text_color: Color,
-
   pub working_area_table_view_scrollbar_width: Pixels,
 
   pub working_area_table_view_scroller_width: Pixels,
@@ -67,6 +67,10 @@ pub struct StyleVariable {
   pub working_area_tree_view_emphasized_account_name_color: Color,
 
   pub working_area_tree_view_service_info_left_padding: f32,
+
+  pub working_area_tree_view_reference_left_padding: f32,
+
+  pub working_area_tree_view_referenced_by_left_padding: f32,
 
   pub working_area_tree_view_actions_left_padding: f32,
 
@@ -154,6 +158,11 @@ impl StyleVariable {
       header_help_button_background: Background::Color(Color::TRANSPARENT),
       header_help_button_hovered_background: Background::Color(Color { r: 1_f32, g: 1_f32, b: 1_f32, a: 0.2_f32 }),
       header_help_button_pressed_background: Background::Color(Color { r: 1_f32, g: 1_f32, b: 1_f32, a: 0.1_f32 }),
+      working_area_link_color: Color::from_rgb8(
+        47_u8,
+        136_u8,
+        237_u8,
+      ),
       working_area_table_view_head_padding: Padding {
         top: 6_f32,
         right: 12_f32,
@@ -211,11 +220,6 @@ impl StyleVariable {
         left: 12_f32,
       },
       working_area_table_view_search_box_middle_space_width: Length::Fixed(6_f32),
-      working_area_table_view_body_link_cell_text_color: Color::from_rgb8(
-        0_u8,
-        0_u8,
-        255_u8,
-      ),
       working_area_table_view_scrollbar_width: Pixels(6_f32),
       working_area_table_view_scroller_width: Pixels(6_f32),
       working_area_table_view_scrollbar_margin: Pixels(6_f32),
@@ -238,6 +242,8 @@ impl StyleVariable {
       working_area_tree_view_account_name_left_padding: 24_f32,
       working_area_tree_view_emphasized_account_name_color: Color::from_rgba(1_f32, 0_f32, 0_f32, 1_f32),
       working_area_tree_view_service_info_left_padding: 24_f32,
+      working_area_tree_view_reference_left_padding: 24_f32,
+      working_area_tree_view_referenced_by_left_padding: 12_f32,
       working_area_tree_view_actions_left_padding: 24_f32,
       working_area_tree_view_row_height: Length::Fixed(32_f32),
       working_area_tree_view_splitter_height: Length::Fixed(16_f32),

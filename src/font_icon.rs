@@ -40,3 +40,11 @@ pub fn language_round() -> Text<'static> {
 pub fn help_outline_round() -> Text<'static> {
   Text::new("\u{e8fd}").font(Font::with_name("Material Icons Round"))
 }
+
+pub fn east_round() -> Text<'static> {
+  Text::new("\u{f1df}").font(Font::with_name("Material Icons Round"))
+}
+
+pub fn west_round() -> Text<'static> {
+  Text::new("\u{f1e6}").font(Font::with_name("Material Icons Round"))
+}

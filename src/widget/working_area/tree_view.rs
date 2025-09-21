@@ -1,6 +1,6 @@
 use std::{cell::RefCell, collections::HashSet, rc::Rc, sync::{Arc, Mutex}};
 
-use iced::{widget::{scrollable, Button, Column, Container, Row, Rule, Space, Text, TextInput}, Alignment, Border, Color, Element, Length, Padding};
+use iced::{widget::{scrollable, Button, Column, Container, MouseArea, Row, Rule, Space, Text, TextInput}, Alignment, Border, Color, Element, Length, Padding};
 use log::warn;
 
 use crate::{database::{account::Account, Database}, font_icon, i18n::I18n, style_variable::StyleVariable, util::filter_util};
@@ -41,6 +41,10 @@ pub enum Message {
   OnUnfoldAccountTreePress(usize),
 
   OnAddAccountPress,
+
+  OnReferenceAccountPress(usize),
+
+  OnReferencedByAccountPress(usize),
 
   // usize: parent account id
   OnAddChildAccountPress(usize),
@@ -93,6 +97,12 @@ impl TreeView {
       }
       Message::OnAddAccountPress => {
         warn!("Event {MODULE_PATH}::Message::OnAddAccountPress should be intercepted");
+      }
+      Message::OnReferenceAccountPress(_id) => {
+        warn!("Event {MODULE_PATH}::Message::OnReferenceAccountPress should be intercepted");
+      }
+      Message::OnReferencedByAccountPress(_id) => {
+        warn!("Event {MODULE_PATH}::Message::OnReferencedByAccountPress should be intercepted");
       }
       Message::OnAddChildAccountPress(_id) => {
         warn!("Event {MODULE_PATH}::Message::OnAddChildAccountPress should be intercepted");
@@ -348,6 +358,63 @@ impl TreeView {
         )
         .push(
           Text::new(service_info)
+        );
+      }
+
+      // reference & referenced by
+      if account.reference_accounts().len() > 0 || account.referenced_by_accounts().len() > 0 {
+        content = content
+        .push(
+          Container::new(
+            Rule::vertical(4)
+          )
+          .width({ StyleVariable::lock(style_variable).working_area_tree_view_reference_left_padding })
+          .height({ StyleVariable::lock(style_variable).working_area_tree_view_splitter_height })
+          .align_x(Alignment::Center)
+        )
+      }
+
+      // reference
+      if account.reference_accounts().len() > 0 {
+        content = content
+        .push(
+          MouseArea::new(
+            Row::new()
+            .push(font_icon::east_round())
+            .push(
+              Text::new(account.reference_accounts().len().to_string())
+              .color({ StyleVariable::lock(&style_variable).working_area_link_color })
+            )
+            .align_y(Alignment::Center)
+          )
+          .on_release(Message::OnReferenceAccountPress(account.id()))
+          .interaction(iced::mouse::Interaction::Pointer)
+        )
+      }
+
+      // space between reference & referenced by
+      if account.reference_accounts().len() > 0 && account.referenced_by_accounts().len() > 0 {
+        content = content.push(Space::new(
+          { StyleVariable::lock(style_variable).working_area_tree_view_referenced_by_left_padding },
+          1_f32,
+        ));
+      }
+
+      // referenced by
+      if account.referenced_by_accounts().len() > 0 {
+        content = content
+        .push(
+          MouseArea::new(
+            Row::new()
+            .push(font_icon::west_round())
+            .push(
+              Text::new(account.referenced_by_accounts().len().to_string())
+              .color({ StyleVariable::lock(&style_variable).working_area_link_color })
+            )
+            .align_y(Alignment::Center)
+          )
+          .on_release(Message::OnReferencedByAccountPress(account.id()))
+          .interaction(iced::mouse::Interaction::Pointer)
         );
       }
     }

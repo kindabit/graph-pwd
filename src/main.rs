@@ -14,11 +14,11 @@ use std::{cell::RefCell, env, error::Error, process::{Command, ExitCode}, rc::Rc
 
 use config::Config;
 use i18n::I18n;
-use iced::{application::Boot, keyboard::{self, key::Named}, widget::column, window::Position, Element, Font, Length, Task};
+use iced::{application::Boot, keyboard, wgpu::core::id, widget::column, window::Position, Element, Font, Length, Task};
 use log::{debug, info};
 use logging::setup_logging;
 
-use crate::{database::{account::Account, Database}, i18n::Language, style_variable::StyleVariable, util::modal};
+use crate::{database::{account::Account, Database}, i18n::Language, style_variable::StyleVariable, util::{account_util, modal}};
 
 const EXIT_CODE_RESTART: u8 = 2;
 
@@ -159,6 +159,7 @@ pub enum Message {
   ConfirmDialogMessage(widget::ConfirmDialogMessage),
   AddOrEditAccountDialogMessage(widget::AddOrEditAccountDialogMessage),
   AccountDetailDialogMessage(widget::AccountDetailDialogMessage),
+  AccountListDialogMessage(widget::AccountListDialogMessage),
   NewMainPasswordDialogMessage(widget::NewMainPasswordDialogMessage),
   MainPasswordDialogMessage(widget::MainPasswordDialogMessage),
   HelpDialogMessage(widget::HelpDialogMessage),
@@ -210,6 +211,8 @@ struct RootWidget {
 
   account_detail_dialog: Option<widget::AccountDetailDialog>,
 
+  account_list_dialog: Option<widget::AccountListDialog>,
+
   new_main_password_dialog: Option<widget::NewMainPasswordDialog>,
 
   main_password_dialog: Option<widget::MainPasswordDialog>,
@@ -253,6 +256,8 @@ impl RootWidget {
       add_or_edit_account_dialog: None,
 
       account_detail_dialog: None,
+
+      account_list_dialog: None,
 
       new_main_password_dialog: None,
 
@@ -321,6 +326,9 @@ impl RootWidget {
       // unwrapping: RootWidgetMessage -> WorkingAreaMessage -> TableViewMessage
       Message::WorkingAreaMessage(msg) => {
         enum LocalAction {
+          ChildrenAccountList(usize),
+          ReferenceAccountList(usize),
+          ReferencedByAccountList(usize),
           Add,
           AddChild(usize),
           Detail(usize),
@@ -331,8 +339,17 @@ impl RootWidget {
 
         let local_action =
         if let widget::WorkingAreaMessage::TableViewMessage(msg) = msg {
-          if let widget::WorkingAreaTableViewMessage::OnAddAccountPress = msg {
-            LocalAction::Add
+          if let widget::WorkingAreaTableViewMessage::OnChildrenAccountPress(id) = msg {
+            LocalAction::ChildrenAccountList(id)
+          }
+          else if let widget::WorkingAreaTableViewMessage::OnReferenceAccountPress(id) = msg {
+            LocalAction::ReferenceAccountList(id)
+          }
+          else if let widget::WorkingAreaTableViewMessage::OnReferencedByAccountPress(id) = msg {
+            LocalAction::ReferencedByAccountList(id)
+          }
+          else if let widget::WorkingAreaTableViewMessage::OnAccountDetailPress(id) = msg {
+            LocalAction::Detail(id)
           }
           else if let widget::WorkingAreaTableViewMessage::OnAccountModifyPress(id) = msg {
             LocalAction::Modify(id)
@@ -340,8 +357,8 @@ impl RootWidget {
           else if let widget::WorkingAreaTableViewMessage::OnAccountDeletePress(id) = msg {
             LocalAction::Delete(id)
           }
-          else if let widget::WorkingAreaTableViewMessage::OnAccountDetailPress(id) = msg {
-            LocalAction::Detail(id)
+          else if let widget::WorkingAreaTableViewMessage::OnAddAccountPress = msg {
+            LocalAction::Add
           }
           else {
             let repack = widget::WorkingAreaMessage::TableViewMessage(msg);
@@ -352,6 +369,12 @@ impl RootWidget {
         else if let widget::WorkingAreaMessage::TreeViewMessage(msg) = msg {
           if let widget::WorkingAreaTreeViewMessage::OnAddAccountPress = msg {
             LocalAction::Add
+          }
+          else if let widget::WorkingAreaTreeViewMessage::OnReferenceAccountPress(id) = msg {
+            LocalAction::ReferenceAccountList(id)
+          }
+          else if let widget::WorkingAreaTreeViewMessage::OnReferencedByAccountPress(id) = msg {
+            LocalAction::ReferencedByAccountList(id)
           }
           else if let widget::WorkingAreaTreeViewMessage::OnAddChildAccountPress(parent_id) = msg {
             LocalAction::AddChild(parent_id)
@@ -377,6 +400,72 @@ impl RootWidget {
         };
 
         match local_action {
+          LocalAction::ChildrenAccountList(id) => {
+            if let Some(database) = self.database.borrow().as_ref() {
+              let children = Vec::from_iter(
+                account_util::guarantee_account_from_database(id, database)
+                .children_accounts()
+                .iter().map(|id| *id)
+              );
+
+              self.account_list_dialog = Some(widget::AccountListDialog::new(
+                self.i18n.translate_variable(
+                  "account_list_dialog.title",
+                  &[
+                    ("$type", &self.i18n.translate("account_list_dialog.title_type_children")),
+                  ]
+                ),
+                children,
+              ));
+            }
+            else {
+              panic!("Working area message categorized into LocalAction::ChildrenAccountList while database is None");
+            }
+          }
+          LocalAction::ReferenceAccountList(id) => {
+            if let Some(database) = self.database.borrow().as_ref() {
+              let reference = Vec::from_iter(
+                account_util::guarantee_account_from_database(id, database)
+                .reference_accounts()
+                .iter().map(|id| *id)
+              );
+
+              self.account_list_dialog = Some(widget::AccountListDialog::new(
+                self.i18n.translate_variable(
+                  "account_list_dialog.title",
+                  &[
+                    ("$type", &self.i18n.translate("account_list_dialog.title_type_reference")),
+                  ]
+                ),
+                reference,
+              ));
+            }
+            else {
+              panic!("Working area message categorized into LocalAction::ReferenceAccountList while database is None");
+            }
+          }
+          LocalAction::ReferencedByAccountList(id) => {
+            if let Some(database) = self.database.borrow().as_ref() {
+              let referenced_by = Vec::from_iter(
+                account_util::guarantee_account_from_database(id, database)
+                .referenced_by_accounts()
+                .iter().map(|id| *id)
+              );
+
+              self.account_list_dialog = Some(widget::AccountListDialog::new(
+                self.i18n.translate_variable(
+                  "account_list_dialog.title",
+                  &[
+                    ("$type", &self.i18n.translate("account_list_dialog.title_type_referenced_by")),
+                  ]
+                ),
+                referenced_by,
+              ));
+            }
+            else {
+              panic!("Working area message categorized into LocalAction::ReferencedByAccountList while database is None");
+            }
+          }
           LocalAction::Add => {
             if let Some(_) = self.database.borrow().as_ref() {
               self.add_or_edit_account_dialog = Some(widget::AddOrEditAccountDialog::new(
@@ -714,6 +803,15 @@ impl RootWidget {
         match msg {
           widget::AccountDetailDialogMessage::OnCloseButtonPress => {
             self.account_detail_dialog = None;
+          }
+        }
+        Task::none()
+      }
+
+      Message::AccountListDialogMessage(msg) => {
+        match msg {
+          widget::AccountListDialogMessage::OnCloseButtonPress => {
+            self.account_list_dialog = None;
           }
         }
         Task::none()
@@ -1123,6 +1221,18 @@ impl RootWidget {
       }
       else {
         panic!("database is None while account_detail_dialog is Some, which is meaningless, and shouldn't happen");
+      }
+    }
+    else if let Some(account_list_dialog) = self.account_list_dialog.as_ref() {
+      if let Some(database) = self.database.borrow().as_ref() {
+        modal(
+          content,
+          account_list_dialog.view(&self.i18n, database, &self.style_variable).map(Message::AccountListDialogMessage),
+          Message::Noop,
+        )
+      }
+      else {
+        panic!("database is None while account_list_dialog is Some, which is meaningless, and shouldn't happen");
       }
     }
     else if let Some(add_or_edit_account_dialog) = self.add_or_edit_account_dialog.as_ref() {
