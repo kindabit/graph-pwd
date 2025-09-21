@@ -3,7 +3,7 @@ use std::{collections::{BTreeMap, BTreeSet, HashSet}, sync::{Arc, Mutex}};
 use iced::{widget::{scrollable, Button, Column, Row, Scrollable, Space, Text, TextInput}, Alignment, Element, Length};
 use log::warn;
 
-use crate::{database::{account::Account, Database}, i18n::I18n, style_variable::StyleVariable, util::{account_util, tree_util}};
+use crate::{database::{account::Account, Database}, font_icon, i18n::I18n, style_variable::StyleVariable, util::{account_util, tree_util}, widget::common};
 
 use super::MiniAccountSelector;
 
@@ -51,6 +51,8 @@ pub struct AddOrEditAccountDialog {
 
   password: Option<String>,
 
+  censor_password: bool,
+
   comment: Option<String>,
 
   custom_fields: BTreeMap<String, String>,
@@ -83,6 +85,8 @@ pub enum Message {
   OnLoginNameInputInput(String),
 
   OnPasswordInputInput(String),
+
+  OnCensorSwitchPress,
 
   OnCommentInputInput(String),
 
@@ -123,6 +127,7 @@ impl AddOrEditAccountDialog {
               service: None,
               login_name: None,
               password: None,
+              censor_password: true,
               comment: None,
               custom_fields: BTreeMap::new(),
               custom_field_name: String::new(),
@@ -147,6 +152,7 @@ impl AddOrEditAccountDialog {
               service: old_account.service().map(String::from),
               login_name: old_account.login_name().map(String::from),
               password: old_account.password().map(String::from),
+              censor_password: true,
               comment: old_account.comment().map(String::from),
               custom_fields: {
                 let mut custom_fields: BTreeMap<String, String> = BTreeMap::new();
@@ -227,6 +233,9 @@ impl AddOrEditAccountDialog {
         else {
           self.password = Some(value)
         }
+      }
+      Message::OnCensorSwitchPress => {
+        self.censor_password = !self.censor_password;
       }
       Message::OnCommentInputInput(value) => {
         if value.len() == 0 {
@@ -529,8 +538,12 @@ impl AddOrEditAccountDialog {
             }
           }
         )
-        .secure(true)
+        .secure(self.censor_password)
         .on_input(Message::OnPasswordInputInput)
+      )
+      .push(
+        common::create_censor_switch_button(self.censor_password, style_variable)
+        .on_press(Message::OnCensorSwitchPress)
       )
       .align_y(Alignment::Center)
     );

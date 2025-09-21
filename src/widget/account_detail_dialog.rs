@@ -1,12 +1,17 @@
 use std::sync::{Arc, Mutex};
 
 use iced::{widget::{scrollable, Button, Column, Container, Row, Scrollable, Space, Text}, Alignment, Element, Length};
+use log::warn;
 
-use crate::{database::{account::Account, Database}, i18n::I18n, style_variable::StyleVariable, util::account_util};
+use crate::{database::{account::Account, Database}, font_icon, i18n::I18n, style_variable::StyleVariable, util::account_util, widget::common};
+
+const MODULE_PATH: &str = module_path!();
 
 pub struct AccountDetailDialog {
 
   account_id: usize,
+
+  censor_password: bool,
 
 }
 
@@ -15,6 +20,8 @@ pub enum Message {
 
   OnCloseButtonPress,
 
+  OnCensorSwitchPress,
+
 }
 
 impl AccountDetailDialog {
@@ -22,6 +29,18 @@ impl AccountDetailDialog {
   pub fn new(account_id: usize) -> Self {
     Self {
       account_id,
+      censor_password: true,
+    }
+  }
+
+  pub fn update(&mut self, msg: Message) {
+    match msg {
+      Message::OnCloseButtonPress => {
+        warn!("Event {MODULE_PATH}::Message::OnCloseButtonPress should be intercepted");
+      }
+      Message::OnCensorSwitchPress => {
+        self.censor_password = !self.censor_password;
+      }
     }
   }
 
@@ -178,14 +197,21 @@ impl AccountDetailDialog {
         Text::new(i18n.translate("account_detail_dialog.password"))
       )
       .push(
-        Text::new(
-          if let Some(password) = account.password() {
-            password.clone()
+        if let Some(password) = account.password() {
+          if self.censor_password {
+            font_icon::stop_circle_round_x6()
           }
           else {
-            "".to_string()
+            Text::new(password.clone())
           }
-        )
+        }
+        else {
+          Text::new("")
+        }
+      )
+      .push(
+        common::create_censor_switch_button(self.censor_password, style_variable)
+        .on_press(Message::OnCensorSwitchPress)
       )
     )
     .push(

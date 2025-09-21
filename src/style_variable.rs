@@ -135,6 +135,18 @@ pub struct StyleVariable {
   pub common_tooltip_background: Background,
 
   pub common_tooltip_border: Border,
+
+  pub common_icon_button_background: Background,
+
+  pub common_icon_button_hovered_background: Background,
+
+  pub common_icon_button_pressed_background: Background,
+
+  pub common_icon_button_border_radius: Radius,
+
+  pub password_censor_switch_on_color: Color,
+
+  pub password_censor_switch_off_color: Color,
 }
 
 impl StyleVariable {
@@ -320,7 +332,26 @@ impl StyleVariable {
           bottom_right: 4_f32,
           bottom_left: 4_f32,
         },
-      }
+      },
+      common_icon_button_background: Background::Color(Color::TRANSPARENT),
+      common_icon_button_hovered_background: Background::Color(Color { r: 1_f32, g: 1_f32, b: 1_f32, a: 0.2_f32 }),
+      common_icon_button_pressed_background: Background::Color(Color { r: 1_f32, g: 1_f32, b: 1_f32, a: 0.1_f32 }),
+      common_icon_button_border_radius: Radius {
+        top_left: 12_f32,
+        top_right: 12_f32,
+        bottom_right: 12_f32,
+        bottom_left: 12_f32,
+      },
+      password_censor_switch_on_color: Color::from_rgb8(
+        127_u8,
+        127_u8,
+        127_u8,
+      ),
+      password_censor_switch_off_color: Color::from_rgb8(
+        47_u8,
+        136_u8,
+        237_u8,
+      ),
     }
   }
 

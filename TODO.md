@@ -2,11 +2,11 @@
 
 references and parent relationship should carry information
 
-show details of parent, children, reference and referenced by accounts
-
 trash bin
 
-add switches to censor/uncensor password
+copy login name and password
+
+replace censored password in table view with font icons
 
 # Medium Priority
 

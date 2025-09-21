@@ -804,6 +804,12 @@ impl RootWidget {
           widget::AccountDetailDialogMessage::OnCloseButtonPress => {
             self.account_detail_dialog = None;
           }
+          other => {
+            self.account_detail_dialog
+            .as_mut()
+            .expect("account_detail_dialog is None while receiving AccountDetailDialogMessage")
+            .update(other);
+          }
         }
         Task::none()
       }

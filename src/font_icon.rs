@@ -48,3 +48,15 @@ pub fn east_round() -> Text<'static> {
 pub fn west_round() -> Text<'static> {
   Text::new("\u{f1e6}").font(Font::with_name("Material Icons Round"))
 }
+
+pub fn stop_circle_round_x6() -> Text<'static> {
+  Text::new("\u{ef71}\u{ef71}\u{ef71}\u{ef71}\u{ef71}\u{ef71}").font(Font::with_name("Material Icons Round"))
+}
+
+pub fn remove_red_eye_round() -> Text<'static> {
+  Text::new("\u{e417}").font(Font::with_name("Material Icons Round"))
+}
+
+pub fn content_copy_round() -> Text<'static> {
+  Text::new("\u{f08a}").font(Font::with_name("Material Icons Round"))
+}
