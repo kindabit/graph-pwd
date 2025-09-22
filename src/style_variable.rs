@@ -18,6 +18,18 @@ pub struct StyleVariable {
 
   pub header_help_button_pressed_background: Background,
 
+  pub header_progress_bar_height: f32,
+
+  pub header_progress_bar_active_background: Background,
+
+  pub header_progress_bar_active_bar: Background,
+
+  pub header_progress_bar_inactive_background: Background,
+
+  pub header_progress_bar_inactive_bar: Background,
+
+  pub working_area_padding: Padding,
+
   pub working_area_link_color: Color,
 
   pub working_area_table_view_head_padding: Padding,
@@ -67,6 +79,8 @@ pub struct StyleVariable {
   pub working_area_tree_view_emphasized_account_name_color: Color,
 
   pub working_area_tree_view_service_info_left_padding: f32,
+
+  pub working_area_tree_view_service_info_right_padding: f32,
 
   pub working_area_tree_view_reference_left_padding: f32,
 
@@ -144,6 +158,14 @@ pub struct StyleVariable {
 
   pub common_icon_button_border_radius: Radius,
 
+  pub common_text_button_color: Color,
+
+  pub common_text_button_hovered_color: Color,
+
+  pub common_text_button_pressed_color: Color,
+
+  pub common_text_button_padding: Padding,
+
   pub password_censor_switch_on_color: Color,
 
   pub password_censor_switch_off_color: Color,
@@ -170,6 +192,12 @@ impl StyleVariable {
       header_help_button_background: Background::Color(Color::TRANSPARENT),
       header_help_button_hovered_background: Background::Color(Color { r: 1_f32, g: 1_f32, b: 1_f32, a: 0.2_f32 }),
       header_help_button_pressed_background: Background::Color(Color { r: 1_f32, g: 1_f32, b: 1_f32, a: 0.1_f32 }),
+      header_progress_bar_height: 2_f32,
+      header_progress_bar_active_background: Background::Color(Color::from_rgb8(95_u8, 63_u8, 63_u8)),
+      header_progress_bar_active_bar: Background::Color(Color::from_rgb8(63_u8, 191_u8, 63_u8)),
+      header_progress_bar_inactive_background: Background::Color(Color::from_rgb8(63_u8, 63_u8, 63_u8)),
+      header_progress_bar_inactive_bar: Background::Color(Color::from_rgb8(63_u8, 63_u8, 63_u8)),
+      working_area_padding: Padding::new(6_f32),
       working_area_link_color: Color::from_rgb8(
         47_u8,
         136_u8,
@@ -254,6 +282,7 @@ impl StyleVariable {
       working_area_tree_view_account_name_left_padding: 24_f32,
       working_area_tree_view_emphasized_account_name_color: Color::from_rgba(1_f32, 0_f32, 0_f32, 1_f32),
       working_area_tree_view_service_info_left_padding: 24_f32,
+      working_area_tree_view_service_info_right_padding: 16_f32,
       working_area_tree_view_reference_left_padding: 24_f32,
       working_area_tree_view_referenced_by_left_padding: 12_f32,
       working_area_tree_view_actions_left_padding: 24_f32,
@@ -342,6 +371,10 @@ impl StyleVariable {
         bottom_right: 12_f32,
         bottom_left: 12_f32,
       },
+      common_text_button_color: Color::from_rgb8(47_u8, 136_u8, 237_u8),
+      common_text_button_hovered_color: Color::from_rgb8(80_u8, 150_u8, 230_u8),
+      common_text_button_pressed_color: Color::from_rgb8(19_u8, 101_u8, 194_u8),
+      common_text_button_padding: Padding { top: 0_f32, right: 4_f32, bottom: 0_f32, left: 4_f32 },
       password_censor_switch_on_color: Color::from_rgb8(
         127_u8,
         127_u8,

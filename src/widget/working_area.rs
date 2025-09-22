@@ -151,6 +151,7 @@ impl WorkingArea {
     container
     .width(Length::Fill)
     .height(Length::Fill)
+    .padding({ StyleVariable::lock(style_variable).working_area_padding })
     .into()
   }
 }

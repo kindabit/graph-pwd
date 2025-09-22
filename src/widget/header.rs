@@ -1,6 +1,6 @@
 use std::sync::{Arc, Mutex};
 
-use iced::{widget::{button, combo_box, row, text, toggler, Button, ComboBox, Space}, Alignment, Color, Element, Length, Padding};
+use iced::{border::Radius, clipboard, widget::{button, combo_box, row, text, toggler, Button, Column, ComboBox, ProgressBar, Space}, Alignment, Border, Color, Element, Length, Task};
 use log::warn;
 
 use crate::{font_icon, i18n::{I18n, Language}, style_variable::StyleVariable};
@@ -12,6 +12,12 @@ pub struct Header {
   tree_mode: bool,
 
   available_languages: combo_box::State<Language>,
+
+  clear_clipboard_scheduled: bool,
+
+  clear_clipboard_countdown: i32,
+
+  clear_clipboard_countdown_config: i32,
 
 }
 
@@ -28,10 +34,17 @@ pub enum Message {
 }
 
 impl Header {
-  pub fn new(tree_mode: bool, available_languages: Vec<Language>) -> Self {
+  pub fn new(
+    tree_mode: bool,
+    available_languages: Vec<Language>,
+    clear_clipboard_countdown_config: i32,
+  ) -> Self {
     Self {
       tree_mode,
       available_languages: combo_box::State::new(available_languages),
+      clear_clipboard_scheduled: false,
+      clear_clipboard_countdown: 0,
+      clear_clipboard_countdown_config,
     }
   }
 
@@ -155,18 +168,76 @@ impl Header {
       language_combobox,
     ];
 
-    let style_variable = StyleVariable::lock(style_variable);
-
     header_row = header_row
-    .padding(style_variable.header_padding)
-    .spacing(style_variable.header_spacing);
-
-    drop(style_variable);
-
-    header_row
+    .padding({ StyleVariable::lock(style_variable).header_padding })
+    .spacing({ StyleVariable::lock(style_variable).header_spacing })
     .align_y(Alignment::Center)
     .width(Length::Fill)
-    .height(Length::Shrink)
+    .height(Length::Shrink);
+
+    Column::new()
+    .push(header_row)
+    .push(
+      if self.clear_clipboard_scheduled {
+        let style_variable = style_variable.clone();
+        ProgressBar::new(
+          0_f32..=1_f32,
+          self.clear_clipboard_countdown as f32 / self.clear_clipboard_countdown_config as f32,
+        )
+        .style(move |_theme| {
+          iced::widget::progress_bar::Style {
+            background: { StyleVariable::lock(&style_variable).header_progress_bar_active_background },
+            bar: { StyleVariable::lock(&style_variable).header_progress_bar_active_bar },
+            border: Border {
+              color: Color::TRANSPARENT,
+              width: 0_f32,
+              radius: Radius::new(0),
+            }
+          }
+        })
+      }
+      else {
+        let style_variable = style_variable.clone();
+        ProgressBar::new(
+          0_f32..=1_f32,
+          0_f32
+        )
+        .style(move |_theme| {
+          iced::widget::progress_bar::Style {
+            background: { StyleVariable::lock(&style_variable).header_progress_bar_inactive_background },
+            bar: { StyleVariable::lock(&style_variable).header_progress_bar_inactive_bar },
+            border: Border {
+              color: Color::TRANSPARENT,
+              width: 0_f32,
+              radius: Radius::new(0),
+            }
+          }
+        })
+      }
+      .girth({ StyleVariable::lock(style_variable).header_progress_bar_height })
+    )
     .into()
   }
+
+  pub fn schedule_clear_clipboard(&mut self) {
+    self.clear_clipboard_scheduled = true;
+    self.clear_clipboard_countdown = self.clear_clipboard_countdown_config;
+  }
+
+  pub fn lapse1s(&mut self) -> Task<Message> {
+    if self.clear_clipboard_scheduled {
+      self.clear_clipboard_countdown -= 1;
+      if self.clear_clipboard_countdown <= 0 {
+        self.clear_clipboard_scheduled = false;
+        clipboard::write(String::new())
+      }
+      else {
+        Task::none()
+      }
+    }
+    else {
+      Task::none()
+    }
+  }
+
 }

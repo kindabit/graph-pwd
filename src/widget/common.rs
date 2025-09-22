@@ -1,6 +1,6 @@
 use std::sync::{Arc, Mutex};
 
-use iced::{widget::{tooltip, Button, Container, Text, Tooltip}, Border, Color, Element};
+use iced::{border::Radius, widget::{tooltip, Button, Container, Text, Tooltip}, Border, Color, Element};
 
 use crate::{font_icon, style_variable::StyleVariable};
 
@@ -71,4 +71,45 @@ pub fn create_censor_switch_button<'b, Message>(censor: bool, style_variable: &A
     },
     style_variable
   )
+}
+
+pub fn create_text_button<'a, 'b, Message>(mut text: Text<'a>, style_variable: &'b Arc<Mutex<StyleVariable>>, wrapping: bool) -> Button<'a, Message> {
+  if wrapping {
+    text = text.wrapping(iced::widget::text::Wrapping::WordOrGlyph);
+  }
+  else {
+    text = text.wrapping(iced::widget::text::Wrapping::None);
+  }
+
+  Button::new(text)
+  .style({
+    let style_variable = style_variable.clone();
+    move |_theme, status| {
+      iced::widget::button::Style {
+        background: None,
+        border: Border {
+          color: Color::TRANSPARENT,
+          radius: Radius::new(0),
+          width: 0_f32,
+        },
+        text_color: match status {
+          iced::widget::button::Status::Active => {
+            StyleVariable::lock(&style_variable).common_text_button_color
+          },
+          iced::widget::button::Status::Hovered => {
+            StyleVariable::lock(&style_variable).common_text_button_hovered_color
+          },
+          iced::widget::button::Status::Pressed => {
+            StyleVariable::lock(&style_variable).common_text_button_pressed_color
+          },
+          iced::widget::button::Status::Disabled => {
+            todo!("Disabled text button is not implemented yet")
+          },
+        },
+        ..Default::default()
+      }
+    }
+  })
+  .padding({ StyleVariable::lock(style_variable).common_text_button_padding })
+  .clip(!wrapping)
 }

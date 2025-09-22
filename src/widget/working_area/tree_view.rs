@@ -3,7 +3,7 @@ use std::{cell::RefCell, collections::HashSet, rc::Rc, sync::{Arc, Mutex}};
 use iced::{widget::{scrollable, Button, Column, Container, MouseArea, Row, Rule, Space, Text, TextInput}, Alignment, Border, Color, Element, Length, Padding};
 use log::warn;
 
-use crate::{database::{account::Account, Database}, font_icon, i18n::I18n, style_variable::StyleVariable, util::filter_util};
+use crate::{database::{account::Account, Database}, font_icon, i18n::I18n, style_variable::StyleVariable, util::filter_util, widget::common};
 
 const MODULE_PATH: &str = module_path!();
 
@@ -41,6 +41,10 @@ pub enum Message {
   OnUnfoldAccountTreePress(usize),
 
   OnAddAccountPress,
+
+  OnLoginNamePress(String),
+
+  OnPasswordPress(String),
 
   OnReferenceAccountPress(usize),
 
@@ -97,6 +101,12 @@ impl TreeView {
       }
       Message::OnAddAccountPress => {
         warn!("Event {MODULE_PATH}::Message::OnAddAccountPress should be intercepted");
+      }
+      Message::OnLoginNamePress(_login_name) => {
+        warn!("Event {MODULE_PATH}::Message::OnLoginNamePress should be intercepted");
+      }
+      Message::OnPasswordPress(_login_name) => {
+        warn!("Event {MODULE_PATH}::Message::OnPasswordPress should be intercepted");
       }
       Message::OnReferenceAccountPress(_id) => {
         warn!("Event {MODULE_PATH}::Message::OnReferenceAccountPress should be intercepted");
@@ -339,14 +349,6 @@ impl TreeView {
 
       // login name & service
       if account.login_name().is_some() || account.service().is_some() {
-        let mut service_info = String::new();
-        if let Some(login_name) = account.login_name() {
-          service_info.push_str(login_name);
-        }
-        service_info.push_str("@");
-        if let Some(service) = account.service() {
-          service_info.push_str(service);
-        }
         content = content
         .push(
           Container::new(
@@ -357,7 +359,53 @@ impl TreeView {
           .align_x(Alignment::Center)
         )
         .push(
-          Text::new(service_info)
+          if let Some(login_name) = account.login_name() {
+            Element::from(
+              common::create_text_button(
+                Text::new(login_name.clone()),
+                style_variable,
+                false,
+              )
+              .on_press(Message::OnLoginNamePress(login_name.clone()))
+            )
+          }
+          else {
+            Element::from(
+              Text::new("")
+            )
+          }
+        )
+        .push(Text::new("@"))
+        .push(
+          if let Some(service) = account.service() {
+            Text::new(service.clone())
+          }
+          else {
+            Text::new("")
+          }
+        )
+        .push(
+          Space::new(
+            { StyleVariable::lock(style_variable).working_area_tree_view_service_info_right_padding },
+            1,
+          )
+        )
+        .push(
+          if let Some(password) = account.password() {
+            Element::from(
+              common::create_text_button(
+                font_icon::stop_circle_round_x6(),
+                style_variable,
+                false
+              )
+              .on_press(Message::OnPasswordPress(password.clone()))
+            )
+          }
+          else {
+            Element::from(
+              Text::new("")
+            )
+          }
         );
       }
 

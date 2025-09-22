@@ -4,9 +4,9 @@ references and parent relationship should carry information
 
 trash bin
 
-copy login name and password
-
 replace censored password in table view with font icons
+
+configurable countdown time
 
 # Medium Priority
 

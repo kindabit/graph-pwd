@@ -14,7 +14,7 @@ use std::{cell::RefCell, env, error::Error, process::{Command, ExitCode}, rc::Rc
 
 use config::Config;
 use i18n::I18n;
-use iced::{application::Boot, keyboard, wgpu::core::id, widget::column, window::Position, Element, Font, Length, Task};
+use iced::{application::Boot, keyboard, widget::column, window::Position, Element, Font, Length, Subscription, Task};
 use log::{debug, info};
 use logging::setup_logging;
 
@@ -78,7 +78,7 @@ pub fn main() -> Result<ExitCode, Box<dyn Error>> {
       ..Default::default()
     })
     .subscription(|_state| {
-      keyboard::on_key_press(|key, modifiers| {
+      let keyboard = keyboard::on_key_press(|key, modifiers| {
         match key {
           keyboard::Key::Named(_named) => {
             None
@@ -95,7 +95,11 @@ pub fn main() -> Result<ExitCode, Box<dyn Error>> {
             None
           },
         }
-      })
+      });
+
+      let timer_1s = iced::time::every(iced::time::seconds(1)).map(Message::Lapse1s);
+
+      Subscription::batch(vec![keyboard, timer_1s])
     })
     .run()?;
 
@@ -151,6 +155,8 @@ pub enum DatabaseUpdatedType {
 
 #[derive(Clone, Debug)]
 pub enum Message {
+
+  Lapse1s(iced::time::Instant),
 
   HeaderMessage(widget::HeaderMessage),
   WorkingAreaMessage(widget::WorkingAreaMessage),
@@ -239,6 +245,7 @@ impl RootWidget {
 
     let initial_tree_mode = config.tree_mode();
     let available_languages = i18n.available_languages().to_vec();
+    let clear_clipboard_countdown = config.clear_clipboard_countdown();
 
     Self {
       config,
@@ -265,7 +272,11 @@ impl RootWidget {
 
       help_dialog: None,
 
-      header: widget::Header::new(initial_tree_mode, available_languages),
+      header: widget::Header::new(
+        initial_tree_mode,
+        available_languages,
+        clear_clipboard_countdown,
+      ),
 
       working_area: widget::WorkingArea::new(database.clone(), initial_tree_mode),
 
@@ -279,6 +290,10 @@ impl RootWidget {
 
   pub fn update(&mut self, message: Message) -> Task<Message> {
     match message {
+      Message::Lapse1s(_instant) => {
+        self.header.lapse1s().map(Message::HeaderMessage)
+      }
+
       Message::HeaderMessage(msg) => {
         match msg {
           widget::HeaderMessage::OnTreeModeToggled(toggled) => {
@@ -334,6 +349,7 @@ impl RootWidget {
           Detail(usize),
           Modify(usize),
           Delete(usize),
+          CopySecret(String),
           Noop,
         }
 
@@ -347,6 +363,12 @@ impl RootWidget {
           }
           else if let widget::WorkingAreaTableViewMessage::OnReferencedByAccountPress(id) = msg {
             LocalAction::ReferencedByAccountList(id)
+          }
+          else if let widget::WorkingAreaTableViewMessage::OnLoginNamePress(login_name) = msg {
+            LocalAction::CopySecret(login_name)
+          }
+          else if let widget::WorkingAreaTableViewMessage::OnPasswordPress(password) = msg {
+            LocalAction::CopySecret(password)
           }
           else if let widget::WorkingAreaTableViewMessage::OnAccountDetailPress(id) = msg {
             LocalAction::Detail(id)
@@ -369,6 +391,12 @@ impl RootWidget {
         else if let widget::WorkingAreaMessage::TreeViewMessage(msg) = msg {
           if let widget::WorkingAreaTreeViewMessage::OnAddAccountPress = msg {
             LocalAction::Add
+          }
+          else if let widget::WorkingAreaTreeViewMessage::OnLoginNamePress(login_name) = msg {
+            LocalAction::CopySecret(login_name)
+          }
+          else if let widget::WorkingAreaTreeViewMessage::OnPasswordPress(password) = msg {
+            LocalAction::CopySecret(password)
           }
           else if let widget::WorkingAreaTreeViewMessage::OnReferenceAccountPress(id) = msg {
             LocalAction::ReferenceAccountList(id)
@@ -563,6 +591,10 @@ impl RootWidget {
                 Message::Noop,
               );
             }
+          }
+          LocalAction::CopySecret(secret) => {
+            self.header.schedule_clear_clipboard();
+            return iced::clipboard::write(secret);
           }
           LocalAction::Noop => {}
         }

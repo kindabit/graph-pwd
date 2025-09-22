@@ -6,6 +6,7 @@ use serde::{Deserialize, Serialize};
 pub struct Config {
   language: String,
   tree_mode: bool,
+  clear_clipboard_countdown: i32,
 }
 
 impl Config {
@@ -36,4 +37,9 @@ impl Config {
   pub fn set_tree_mode(&mut self, tree_mode: bool) {
     self.tree_mode = tree_mode;
   }
+
+  pub fn clear_clipboard_countdown(&self) -> i32 {
+    self.clear_clipboard_countdown
+  }
+
 }

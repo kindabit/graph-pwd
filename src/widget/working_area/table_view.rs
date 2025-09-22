@@ -1,9 +1,9 @@
 use std::{cell::RefCell, cmp::min, rc::Rc, sync::{Arc, Mutex}};
 
-use iced::{widget::{container, scrollable, text::Wrapping, tooltip, Button, Checkbox, Column, Container, MouseArea, PickList, Row, Space, Text, TextInput, Tooltip}, Alignment, Element, Length};
+use iced::{widget::{container, scrollable, text::Wrapping, Button, Checkbox, Column, Container, MouseArea, PickList, Row, Space, Text, TextInput}, Alignment, Element, Length};
 use log::warn;
 
-use crate::{database::{account::Account, Database}, font_icon, i18n::I18n, style_variable::StyleVariable, util::{account_util, filter_util}};
+use crate::{database::{account::Account, Database}, font_icon, i18n::I18n, style_variable::StyleVariable, util::{account_util, filter_util}, widget::common};
 
 const MODULE_PATH: &str = module_path!();
 
@@ -46,6 +46,10 @@ pub enum Message {
   OnReferenceAccountPress(usize),
 
   OnReferencedByAccountPress(usize),
+
+  OnLoginNamePress(String),
+
+  OnPasswordPress(String),
 
   OnAccountDetailPress(usize),
 
@@ -123,6 +127,12 @@ impl TableView {
       }
       Message::OnReferencedByAccountPress(_id) => {
         warn!("Event {MODULE_PATH}::Message::OnReferencedByAccountPress should be intercepted");
+      }
+      Message::OnLoginNamePress(_login_name) => {
+        warn!("Event {MODULE_PATH}::Message::OnLoginNamePress should be intercepted");
+      }
+      Message::OnPasswordPress(_password) => {
+        warn!("Event {MODULE_PATH}::Message::OnPasswordPress should be intercepted");
       }
       Message::OnAccountDetailPress(_id) => {
         warn!("Event {MODULE_PATH}::Message::OnAccountDetailPress should be intercepted");
@@ -412,7 +422,13 @@ impl TableView {
               Some(login_name) => {
                 Element::from(
                   super::super::common::create_tooltip(
-                    self.body_text_cell_common(login_name).width(Self::COLUMN_WIDTH[7]),
+                    common::create_text_button(
+                      Text::new(login_name.clone()),
+                      style_variable,
+                      false
+                    )
+                    .width(Self::COLUMN_WIDTH[7])
+                    .on_press(Message::OnLoginNamePress(login_name.clone())),
                     login_name.to_owned(),
                     style_variable
                   )
@@ -428,14 +444,23 @@ impl TableView {
           )
           .push(
             match account.password() {
-              Some(_password) => {
-                self.body_text_cell_common("******")
+              Some(password) => {
+                Element::from(
+                  common::create_text_button(
+                    font_icon::stop_circle_round_x6(),
+                    style_variable,
+                    false
+                  )
+                  .width(Self::COLUMN_WIDTH[8])
+                  .on_press(Message::OnPasswordPress(password.to_owned()))
+                )
               }
               None => {
-                self.body_text_cell_common("-")
+                Element::from(
+                  self.body_text_cell_common("-").width(Self::COLUMN_WIDTH[8])
+                )
               }
             }
-            .width(Self::COLUMN_WIDTH[8])
           )
           .push(
             match account.comment() {
