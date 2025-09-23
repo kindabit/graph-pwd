@@ -22,6 +22,10 @@ pub enum Message {
 
   OnCensorSwitchPress,
 
+  OnLoginNameCopyPress(String),
+
+  OnPasswordCopyPress(String),
+
 }
 
 impl AccountDetailDialog {
@@ -40,6 +44,12 @@ impl AccountDetailDialog {
       }
       Message::OnCensorSwitchPress => {
         self.censor_password = !self.censor_password;
+      }
+      Message::OnLoginNameCopyPress(_login_name) => {
+        warn!("Event {MODULE_PATH}::Message::OnLoginNameCopyPress should be intercepted");
+      }
+      Message::OnPasswordCopyPress(_password) => {
+        warn!("Event {MODULE_PATH}::Message::OnPasswordCopyPress should be intercepted");
       }
     }
   }
@@ -190,6 +200,20 @@ impl AccountDetailDialog {
           }
         )
       )
+      .push(
+        common::create_icon_button(
+          font_icon::content_copy_round(),
+          style_variable
+        )
+        .on_press(Message::OnLoginNameCopyPress(
+          if let Some(login_name) = account.login_name() {
+            login_name.clone()
+          }
+          else {
+            String::new()
+          }
+        ))
+      )
     )
     .push(
       Row::new()
@@ -212,6 +236,20 @@ impl AccountDetailDialog {
       .push(
         common::create_censor_switch_button(self.censor_password, style_variable)
         .on_press(Message::OnCensorSwitchPress)
+      )
+      .push(
+        common::create_icon_button(
+          font_icon::content_copy_round(),
+          style_variable
+        )
+        .on_press(Message::OnPasswordCopyPress(
+          if let Some(password) = account.password() {
+            password.clone()
+          }
+          else {
+            String::new()
+          }
+        ))
       )
     )
     .push(

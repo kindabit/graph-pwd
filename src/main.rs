@@ -836,6 +836,18 @@ impl RootWidget {
           widget::AccountDetailDialogMessage::OnCloseButtonPress => {
             self.account_detail_dialog = None;
           }
+          widget::AccountDetailDialogMessage::OnLoginNameCopyPress(login_name) => {
+            if !login_name.is_empty() {
+              self.header.schedule_clear_clipboard();
+              return iced::clipboard::write(login_name);
+            }
+          }
+          widget::AccountDetailDialogMessage::OnPasswordCopyPress(password) => {
+            if !password.is_empty() {
+              self.header.schedule_clear_clipboard();
+              return iced::clipboard::write(password);
+            }
+          }
           other => {
             self.account_detail_dialog
             .as_mut()

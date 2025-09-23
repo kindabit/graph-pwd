@@ -8,6 +8,8 @@ replace censored password in table view with font icons
 
 configurable countdown time
 
+double encrypt password, decrypt password only when necessary
+
 # Medium Priority
 
 create backup before loading a database
