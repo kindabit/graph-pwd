@@ -78,15 +78,17 @@ pub struct StyleVariable {
 
   pub working_area_tree_view_emphasized_account_name_color: Color,
 
-  pub working_area_tree_view_service_info_left_padding: f32,
+  pub working_area_tree_view_account_name_right_padding: f32,
 
-  pub working_area_tree_view_service_info_right_padding: f32,
+  pub working_area_tree_view_login_name_right_padding: f32,
 
-  pub working_area_tree_view_reference_left_padding: f32,
+  pub working_area_tree_view_service_right_padding: f32,
 
-  pub working_area_tree_view_referenced_by_left_padding: f32,
+  pub working_area_tree_view_password_right_padding: f32,
 
-  pub working_area_tree_view_actions_left_padding: f32,
+  pub working_area_tree_view_reference_right_padding: f32,
+
+  pub working_area_tree_view_referenced_by_right_padding: f32,
 
   pub working_area_tree_view_row_height: Length,
 
@@ -281,11 +283,12 @@ impl StyleVariable {
       working_area_tree_view_indent_size: 48_f32,
       working_area_tree_view_account_name_left_padding: 24_f32,
       working_area_tree_view_emphasized_account_name_color: Color::from_rgba(1_f32, 0_f32, 0_f32, 1_f32),
-      working_area_tree_view_service_info_left_padding: 24_f32,
-      working_area_tree_view_service_info_right_padding: 16_f32,
-      working_area_tree_view_reference_left_padding: 24_f32,
-      working_area_tree_view_referenced_by_left_padding: 12_f32,
-      working_area_tree_view_actions_left_padding: 24_f32,
+      working_area_tree_view_account_name_right_padding: 24_f32,
+      working_area_tree_view_login_name_right_padding: 16_f32,
+      working_area_tree_view_service_right_padding: 16_f32,
+      working_area_tree_view_password_right_padding: 16_f32,
+      working_area_tree_view_reference_right_padding: 16_f32,
+      working_area_tree_view_referenced_by_right_padding: 24_f32,
       working_area_tree_view_row_height: Length::Fixed(32_f32),
       working_area_tree_view_splitter_height: Length::Fixed(16_f32),
       working_area_tree_view_row_button_size: Length::Fixed(24_f32),

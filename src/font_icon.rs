@@ -60,3 +60,15 @@ pub fn remove_red_eye_round() -> Text<'static> {
 pub fn content_copy_round() -> Text<'static> {
   Text::new("\u{f08a}").font(Font::with_name("Material Icons Round"))
 }
+
+pub fn home_round() -> Text<'static> {
+  Text::new("\u{e88a}").font(Font::with_name("Material Icons Round"))
+}
+
+pub fn account_circle_round() -> Text<'static> {
+  Text::new("\u{e853}").font(Font::with_name("Material Icons Round"))
+}
+
+pub fn lock_round() -> Text<'static> {
+  Text::new("\u{e897}").font(Font::with_name("Material Icons Round"))
+}

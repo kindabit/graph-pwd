@@ -302,7 +302,7 @@ impl TreeView {
       Length::Fill,
     ));
 
-    // account info & splitter
+    // account info
     {
       let database = self.database.borrow();
       let database = database.as_ref().expect("Database is None when rendering tree view");
@@ -347,140 +347,122 @@ impl TreeView {
         );
       }
 
-      // login name & service
-      if account.login_name().is_some() || account.service().is_some() {
-        content = content
-        .push(
-          Container::new(
-            Rule::vertical(4)
-          )
-          .width({ StyleVariable::lock(style_variable).working_area_tree_view_service_info_left_padding })
-          .height({ StyleVariable::lock(style_variable).working_area_tree_view_splitter_height })
-          .align_x(Alignment::Center)
-        )
-        .push(
-          if let Some(login_name) = account.login_name() {
-            Element::from(
-              common::create_text_button(
-                Text::new(login_name.clone()),
-                style_variable,
-                false,
-              )
-              .on_press(Message::OnLoginNamePress(login_name.clone()))
-            )
-          }
-          else {
-            Element::from(
-              Text::new("")
-            )
-          }
-        )
-        .push(Text::new("@"))
-        .push(
-          if let Some(service) = account.service() {
-            Text::new(service.clone())
-          }
-          else {
-            Text::new("")
-          }
-        )
-        .push(
-          Space::new(
-            { StyleVariable::lock(style_variable).working_area_tree_view_service_info_right_padding },
-            1,
-          )
-        )
-        .push(
-          if let Some(password) = account.password() {
-            Element::from(
-              common::create_text_button(
-                font_icon::stop_circle_round_x6(),
-                style_variable,
-                false
-              )
-              .on_press(Message::OnPasswordPress(password.clone()))
-            )
-          }
-          else {
-            Element::from(
-              Text::new("")
-            )
-          }
-        );
-      }
-
-      // reference & referenced by
-      if account.reference_accounts().len() > 0 || account.referenced_by_accounts().len() > 0 {
-        content = content
-        .push(
-          Container::new(
-            Rule::vertical(4)
-          )
-          .width({ StyleVariable::lock(style_variable).working_area_tree_view_reference_left_padding })
-          .height({ StyleVariable::lock(style_variable).working_area_tree_view_splitter_height })
-          .align_x(Alignment::Center)
-        )
-      }
-
-      // reference
-      if account.reference_accounts().len() > 0 {
-        content = content
-        .push(
-          MouseArea::new(
-            Row::new()
-            .push(font_icon::east_round())
-            .push(
-              Text::new(account.reference_accounts().len().to_string())
-              .color({ StyleVariable::lock(&style_variable).working_area_link_color })
-            )
-            .align_y(Alignment::Center)
-          )
-          .on_release(Message::OnReferenceAccountPress(account.id()))
-          .interaction(iced::mouse::Interaction::Pointer)
-        )
-      }
-
-      // space between reference & referenced by
-      if account.reference_accounts().len() > 0 && account.referenced_by_accounts().len() > 0 {
-        content = content.push(Space::new(
-          { StyleVariable::lock(style_variable).working_area_tree_view_referenced_by_left_padding },
-          1_f32,
-        ));
-      }
-
-      // referenced by
-      if account.referenced_by_accounts().len() > 0 {
-        content = content
-        .push(
-          MouseArea::new(
-            Row::new()
-            .push(font_icon::west_round())
-            .push(
-              Text::new(account.referenced_by_accounts().len().to_string())
-              .color({ StyleVariable::lock(&style_variable).working_area_link_color })
-            )
-            .align_y(Alignment::Center)
-          )
-          .on_release(Message::OnReferencedByAccountPress(account.id()))
-          .interaction(iced::mouse::Interaction::Pointer)
-        );
-      }
-    }
-
-    // actions & splitter
-    {
       content = content
       .push(
         Container::new(
           Rule::vertical(4)
         )
-        .width({ StyleVariable::lock(style_variable).working_area_tree_view_actions_left_padding })
+        .width({ StyleVariable::lock(&style_variable).working_area_tree_view_account_name_right_padding })
+        .height({ StyleVariable::lock(&style_variable).working_area_tree_view_splitter_height })
+        .align_x(Alignment::Center)
+      );
+
+      // login name
+      if let Some(login_name) = account.login_name() {
+        content = content
+        .push(
+          font_icon::account_circle_round()
+        )
+        .push(
+          common::create_text_button(
+            Text::new(login_name.clone()),
+            style_variable,
+            false,
+          )
+          .on_press(Message::OnLoginNamePress(login_name.clone()))
+        )
+        .push(
+          Space::new(
+            { StyleVariable::lock(style_variable).working_area_tree_view_login_name_right_padding },
+            1
+          )
+        );
+      }
+
+      // service
+      if let Some(service) = account.service() {
+        content = content
+        .push(
+          font_icon::home_round()
+        )
+        .push(
+          Text::new(service.clone())
+        )
+        .push(
+          Space::new(
+            { StyleVariable::lock(style_variable).working_area_tree_view_service_right_padding },
+            1
+          )
+        );
+      }
+
+      // password
+      if let Some(password) = account.password() {
+        content = content
+        .push(
+          font_icon::lock_round()
+        )
+        .push(
+          common::create_text_button(
+            font_icon::stop_circle_round_x6(),
+            style_variable,
+            false
+          )
+          .on_press(Message::OnPasswordPress(password.clone()))
+        )
+        .push(
+          Space::new(
+            { StyleVariable::lock(style_variable).working_area_tree_view_password_right_padding },
+            1
+          )
+        );
+      }
+
+      // reference
+      content = content
+      .push(font_icon::east_round())
+      .push(
+        common::create_text_button(
+          Text::new(account.reference_accounts().len().to_string()),
+          style_variable,
+          false
+       )
+       .on_press(Message::OnReferenceAccountPress(account.id()))
+      )
+      .push(
+        Space::new(
+          { StyleVariable::lock(style_variable).working_area_tree_view_reference_right_padding },
+          1
+        )
+      );
+
+      // referenced by
+      content = content
+      .push(font_icon::west_round())
+      .push(
+        common::create_text_button(
+          Text::new(account.referenced_by_accounts().len().to_string()),
+          style_variable,
+          false
+        )
+        .on_press(Message::OnReferencedByAccountPress(account.id()))
+      )
+      .push(
+        Container::new(
+          Rule::vertical(4)
+        )
+        .width({ StyleVariable::lock(style_variable).working_area_tree_view_referenced_by_right_padding })
         .height({ StyleVariable::lock(style_variable).working_area_tree_view_splitter_height })
         .align_x(Alignment::Center)
       )
+    }
+
+    // actions & splitter
+    {
+      content = content
       // add child account
       .push(
-        super::super::common::create_tooltip(
+        common::create_tooltip(
           self.create_row_button(
             font_icon::person_add_round(),
             Message::OnAddChildAccountPress(account_tree.account_id),
@@ -496,7 +478,7 @@ impl TreeView {
       ))
       // detail
       .push(
-        super::super::common::create_tooltip(
+        common::create_tooltip(
           self.create_row_button(
             font_icon::more_round(),
             Message::OnAccountDetailPress(account_tree.account_id),
@@ -512,7 +494,7 @@ impl TreeView {
       ))
       // edit
       .push(
-        super::super::common::create_tooltip(
+        common::create_tooltip(
           self.create_row_button(
             font_icon::edit_round(),
             Message::OnAccountModifyPress(account_tree.account_id),
@@ -528,7 +510,7 @@ impl TreeView {
       ))
       // delete
       .push(
-        super::super::common::create_tooltip(
+        common::create_tooltip(
           self.create_row_button(
             font_icon::delete_round(),
             Message::OnAccountDeletePress(account_tree.account_id),

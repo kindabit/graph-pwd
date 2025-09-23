@@ -368,28 +368,31 @@ impl TableView {
             }
           )
           .push(
-            self.body_link_cell_common(
-              account.children_accounts().len().to_string(),
+            common::create_text_button(
+              Text::new(account.children_accounts().len().to_string()),
               style_variable,
-              Self::COLUMN_WIDTH[2],
-              Message::OnChildrenAccountPress(account.id())
+              false
             )
+            .width(Self::COLUMN_WIDTH[2])
+            .on_press(Message::OnChildrenAccountPress(account.id()))
           )
           .push(
-            self.body_link_cell_common(
-              account.reference_accounts().len().to_string(),
+            common::create_text_button(
+              Text::new(account.reference_accounts().len().to_string()),
               style_variable,
-              Self::COLUMN_WIDTH[3],
-              Message::OnReferenceAccountPress(account.id())
+              false
             )
+            .width(Self::COLUMN_WIDTH[3])
+            .on_press(Message::OnReferenceAccountPress(account.id()))
           )
           .push(
-            self.body_link_cell_common(
-              account.referenced_by_accounts().len().to_string(),
+            common::create_text_button(
+              Text::new(account.referenced_by_accounts().len().to_string()),
               style_variable,
-              Self::COLUMN_WIDTH[4],
-              Message::OnReferencedByAccountPress(account.id())
+              false
             )
+            .width(Self::COLUMN_WIDTH[4])
+            .on_press(Message::OnReferencedByAccountPress(account.id()))
           )
           .push(
             super::super::common::create_tooltip(
