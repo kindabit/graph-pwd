@@ -72,3 +72,7 @@ pub fn account_circle_round() -> Text<'static> {
 pub fn lock_round() -> Text<'static> {
   Text::new("\u{e897}").font(Font::with_name("Material Icons Round"))
 }
+
+pub fn mouse_round() -> Text<'static> {
+  Text::new("\u{e323}").font(Font::with_name("Material Icons Round"))
+}
