@@ -18,7 +18,7 @@ use iced::{application::Boot, keyboard, widget::column, window::Position, Elemen
 use log::{debug, info};
 use logging::setup_logging;
 
-use crate::{database::{account::Account, Database}, i18n::Language, style_variable::StyleVariable, util::{account_util, modal}};
+use crate::{database::{account::Account, Database}, i18n::Language, style_variable::StyleVariable, util::{account_util, modal, security}};
 
 const EXIT_CODE_RESTART: u8 = 2;
 
@@ -349,7 +349,8 @@ impl RootWidget {
           Detail(usize),
           Modify(usize),
           Delete(usize),
-          CopySecret(String),
+          CopyLoginName(String),
+          CopyPassword(usize),
           Noop,
         }
 
@@ -365,10 +366,10 @@ impl RootWidget {
             LocalAction::ReferencedByAccountList(id)
           }
           else if let widget::WorkingAreaTableViewMessage::OnLoginNamePress(login_name) = msg {
-            LocalAction::CopySecret(login_name)
+            LocalAction::CopyLoginName(login_name)
           }
-          else if let widget::WorkingAreaTableViewMessage::OnPasswordPress(password) = msg {
-            LocalAction::CopySecret(password)
+          else if let widget::WorkingAreaTableViewMessage::OnPasswordPress(account_id) = msg {
+            LocalAction::CopyPassword(account_id)
           }
           else if let widget::WorkingAreaTableViewMessage::OnAccountDetailPress(id) = msg {
             LocalAction::Detail(id)
@@ -393,10 +394,10 @@ impl RootWidget {
             LocalAction::Add
           }
           else if let widget::WorkingAreaTreeViewMessage::OnLoginNamePress(login_name) = msg {
-            LocalAction::CopySecret(login_name)
+            LocalAction::CopyLoginName(login_name)
           }
-          else if let widget::WorkingAreaTreeViewMessage::OnPasswordPress(password) = msg {
-            LocalAction::CopySecret(password)
+          else if let widget::WorkingAreaTreeViewMessage::OnPasswordPress(account_id) = msg {
+            LocalAction::CopyPassword(account_id)
           }
           else if let widget::WorkingAreaTreeViewMessage::OnReferenceAccountPress(id) = msg {
             LocalAction::ReferenceAccountList(id)
@@ -527,11 +528,16 @@ impl RootWidget {
             }
           }
           LocalAction::Modify(id) => {
-            if let Some(database) = self.database.borrow().as_ref() {
-              let old_account = database.accounts().get(id)
+            if let Some(database) = self.database.borrow_mut().as_mut() {
+              let secondary_password = database.secondary_password().clone();
+              let secondary_password_nonce = database.secondary_password_nonce().clone();
+              let old_account = database.accounts_mut().get_mut(id)
                 .expect(&format!("Old account id ({id}) out of bounds"))
-                .as_ref()
+                .as_mut()
                 .expect(&format!("Old account is deleted (id={id})"));
+              if let Some(password) = old_account.password_mut() {
+                password.decipher(&secondary_password, &secondary_password_nonce);
+              }
               self.add_or_edit_account_dialog = Some(widget::AddOrEditAccountDialog::new(
                 widget::AddOrEditAccountDialogMode::Edit,
                 Some(old_account),
@@ -592,9 +598,33 @@ impl RootWidget {
               );
             }
           }
-          LocalAction::CopySecret(secret) => {
+          LocalAction::CopyLoginName(login_name) => {
             self.header.schedule_clear_clipboard();
-            return iced::clipboard::write(secret);
+            return iced::clipboard::write(login_name);
+          }
+          LocalAction::CopyPassword(account_id) => {
+            if let Some(database) = self.database.borrow_mut().as_mut() {
+              let secondary_password = database.secondary_password().clone();
+              let secondary_password_nonce = database.secondary_password_nonce().clone();
+              let account = account_util::guarantee_account_from_database_mut(account_id, database);
+              if let Some(password) = account.password_mut() {
+                password.decipher(&secondary_password, &secondary_password_nonce);
+                self.header.schedule_clear_clipboard();
+                return iced::clipboard::write(
+                  match password.plain() {
+                    Some(plain) => {
+                      plain.clone()
+                    }
+                    None => {
+                      panic!("Account password should have already been deciphered here")
+                    }
+                  }
+                );
+              }
+            }
+            else {
+              panic!("Working area message categorized into LocalAction::CopyPassword while database is None");
+            }
           }
           LocalAction::Noop => {}
         }
@@ -651,7 +681,11 @@ impl RootWidget {
                       }
                       new_account.set_service(add_or_edit_account_dialog.service().map(String::from));
                       new_account.set_login_name(add_or_edit_account_dialog.login_name().map(String::from));
-                      new_account.set_password(add_or_edit_account_dialog.password().map(String::from));
+                      new_account.set_password(
+                        add_or_edit_account_dialog.password().map(String::from),
+                        database.secondary_password(),
+                        database.secondary_password_nonce(),
+                      );
                       new_account.set_comment(add_or_edit_account_dialog.comment().map(String::from));
                       for custom_field in add_or_edit_account_dialog.custom_fields() {
                         new_account.add_custom_field(custom_field.0.clone(), custom_field.1.clone());
@@ -772,7 +806,11 @@ impl RootWidget {
                       old_account.set_name(add_or_edit_account_dialog.name().to_string());
                       old_account.set_service(add_or_edit_account_dialog.service().map(String::from));
                       old_account.set_login_name(add_or_edit_account_dialog.login_name().map(String::from));
-                      old_account.set_password(add_or_edit_account_dialog.password().map(String::from));
+                      old_account.set_password(
+                        add_or_edit_account_dialog.password().map(String::from),
+                        database.secondary_password(),
+                        database.secondary_password_nonce(),
+                      );
                       old_account.set_comment(add_or_edit_account_dialog.comment().map(String::from));
 
                       old_account.clear_custom_fields();
@@ -836,23 +874,53 @@ impl RootWidget {
           widget::AccountDetailDialogMessage::OnCloseButtonPress => {
             self.account_detail_dialog = None;
           }
+          widget::AccountDetailDialogMessage::OnCensorSwitchPress => {
+            let account_detail_dialog = self.account_detail_dialog
+              .as_mut()
+              .expect("account_detail_dialog is None while receiving AccountDetailDialogMessage");
+
+            if account_detail_dialog.censor_password() {
+              // censored -> uncensored (decipher)
+              let mut database = self.database.borrow_mut();
+              let database = database.as_mut().expect("Database is None while receiving AccountDetailDialogMessage");
+              let secondary_password = database.secondary_password().clone();
+              let secondary_password_nonce = database.secondary_password_nonce().clone();
+              let account = account_util::guarantee_account_from_database_mut(account_detail_dialog.account_id(), database);
+              if let Some(password) = account.password_mut() {
+                password.decipher(&secondary_password, &secondary_password_nonce);
+              }
+            }
+
+            account_detail_dialog.update(widget::AccountDetailDialogMessage::OnCensorSwitchPress);
+          }
           widget::AccountDetailDialogMessage::OnLoginNameCopyPress(login_name) => {
             if !login_name.is_empty() {
               self.header.schedule_clear_clipboard();
               return iced::clipboard::write(login_name);
             }
           }
-          widget::AccountDetailDialogMessage::OnPasswordCopyPress(password) => {
-            if !password.is_empty() {
-              self.header.schedule_clear_clipboard();
-              return iced::clipboard::write(password);
+          widget::AccountDetailDialogMessage::OnPasswordCopyPress(account_id) => {
+            let mut database = self.database.borrow_mut();
+            let database = database.as_mut().expect("Database is None while receiving AccountDetailDialogMessage");
+            let secondary_password = database.secondary_password().clone();
+            let secondary_password_nonce = database.secondary_password_nonce().clone();
+            let account = account_util::guarantee_account_from_database_mut(account_id, database);
+            match account.password_mut() {
+              Some(password) => {
+                password.decipher(&secondary_password, &secondary_password_nonce);
+                self.header.schedule_clear_clipboard();
+                match password.plain() {
+                  Some(plain) => {
+                    return iced::clipboard::write(plain.clone());
+                  }
+                  None => {
+                    panic!("Account password should has already been deciphered here")
+                  }
+                }
+              }
+              None => {
+              }
             }
-          }
-          other => {
-            self.account_detail_dialog
-            .as_mut()
-            .expect("account_detail_dialog is None while receiving AccountDetailDialogMessage")
-            .update(other);
           }
         }
         Task::none()
@@ -978,6 +1046,8 @@ impl RootWidget {
       Message::NewDatabaseMainPasswordInputted(path) => {
         let mut db = Database::new(path, self.temp_password.clone());
 
+        security::erase_string_not_own(&mut self.temp_password);
+
         let account_1 = Account::new(0, "Sample Account 1".to_string(), None);
         let mut account_2 = Account::new(1, "Sample Account 2".to_string(), None);
         account_2.add_children_account(2);
@@ -1057,11 +1127,14 @@ impl RootWidget {
       }
 
       Message::LoadDatabaseMainPasswordInputted(path) => {
-        match Database::load(path, self.temp_password.clone(), &self.i18n) {
+        let temp_password = self.temp_password.clone();
+        security::erase_string_not_own(&mut self.temp_password);
+
+        match Database::load(path, temp_password, &self.i18n) {
           Ok(database) => {
             self.database.replace(Some(database));
             self.update(Message::LoadDatabaseSuccess)
-          },
+          }
           Err(err) => self.update(Message::LoadDatabaseFail(err.to_string())),
         }
       }

@@ -41,6 +41,33 @@ impl <'a> ByteSliceReader<'a> {
     Ok(buf[0])
   }
 
+  pub fn read_u8_slice<const L: usize>(&mut self) -> Result<[u8; L], Box<dyn Error>> {
+    let mut buf: [u8; L] = [0; L];
+    self.slice.read_exact(&mut buf)?;
+    Ok(buf)
+  }
+
+  pub fn read_vec_u8(&mut self) -> Result<Vec<u8>, Box<dyn Error>> {
+    let len = self.read_usize()?;
+    let mut buf = vec![0_u8; len];
+    self.slice.read_exact(&mut buf)?;
+    Ok(buf)
+  }
+
+  pub fn read_option_vec_u8(&mut self) -> Result<Option<Vec<u8>>, Box<dyn Error>> {
+    let flag = self.read_u8()?;
+    if flag == 1 {
+      let value = self.read_vec_u8()?;
+      Ok(Some(value))
+    }
+    else if flag == 0 {
+      Ok(None)
+    }
+    else {
+      panic!("unexpected flag value: {flag}")
+    }
+  }
+
   pub fn read_option_usize(&mut self) -> Result<Option<usize>, Box<dyn Error>> {
     let flag = self.read_u8()?;
     if flag == 1 {

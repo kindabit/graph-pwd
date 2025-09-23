@@ -49,7 +49,7 @@ pub enum Message {
 
   OnLoginNamePress(String),
 
-  OnPasswordPress(String),
+  OnPasswordPress(usize),
 
   OnAccountDetailPress(usize),
 
@@ -131,7 +131,7 @@ impl TableView {
       Message::OnLoginNamePress(_login_name) => {
         warn!("Event {MODULE_PATH}::Message::OnLoginNamePress should be intercepted");
       }
-      Message::OnPasswordPress(_password) => {
+      Message::OnPasswordPress(_account_id) => {
         warn!("Event {MODULE_PATH}::Message::OnPasswordPress should be intercepted");
       }
       Message::OnAccountDetailPress(_id) => {
@@ -447,7 +447,7 @@ impl TableView {
           )
           .push(
             match account.password() {
-              Some(password) => {
+              Some(_password) => {
                 Element::from(
                   common::create_text_button(
                     font_icon::stop_circle_round_x6(),
@@ -455,7 +455,7 @@ impl TableView {
                     false
                   )
                   .width(Self::COLUMN_WIDTH[8])
-                  .on_press(Message::OnPasswordPress(password.to_owned()))
+                  .on_press(Message::OnPasswordPress(account.id()))
                 )
               }
               None => {

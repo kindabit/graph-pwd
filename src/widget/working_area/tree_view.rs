@@ -44,7 +44,7 @@ pub enum Message {
 
   OnLoginNamePress(String),
 
-  OnPasswordPress(String),
+  OnPasswordPress(usize),
 
   OnReferenceAccountPress(usize),
 
@@ -105,7 +105,7 @@ impl TreeView {
       Message::OnLoginNamePress(_login_name) => {
         warn!("Event {MODULE_PATH}::Message::OnLoginNamePress should be intercepted");
       }
-      Message::OnPasswordPress(_login_name) => {
+      Message::OnPasswordPress(_account_id) => {
         warn!("Event {MODULE_PATH}::Message::OnPasswordPress should be intercepted");
       }
       Message::OnReferenceAccountPress(_id) => {
@@ -397,7 +397,7 @@ impl TreeView {
       }
 
       // password
-      if let Some(password) = account.password() {
+      if let Some(_password) = account.password() {
         content = content
         .push(
           font_icon::lock_round()
@@ -408,7 +408,7 @@ impl TreeView {
             style_variable,
             false
           )
-          .on_press(Message::OnPasswordPress(password.clone()))
+          .on_press(Message::OnPasswordPress(account.id()))
         )
         .push(
           Space::new(

@@ -31,6 +31,28 @@ impl <'a> ByteVecWriter<'a> {
     self.ve.extend_from_slice(&data.to_le_bytes());
   }
 
+  pub fn write_u8_slice(&mut self, data: &[u8]) {
+    // todo: length of data???
+    self.ve.extend_from_slice(data);
+  }
+
+  pub fn write_vec_u8(&mut self, data: &[u8]) {
+    self.ve.extend_from_slice(&data.len().to_le_bytes());
+    self.ve.extend_from_slice(data);
+  }
+
+  pub fn write_option_vec_u8(&mut self, data: Option<&[u8]>) {
+    match data {
+      Some(data) => {
+        self.ve.extend_from_slice(&ONE);
+        self.write_vec_u8(data);
+      }
+      None => {
+        self.ve.extend_from_slice(&ZERO);
+      }
+    }
+  }
+
   pub fn write_option_usize(&mut self, data: Option<usize>) {
     match data {
       Some(data) => {

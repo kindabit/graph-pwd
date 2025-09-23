@@ -1,8 +1,90 @@
 use std::{collections::{BTreeMap, BTreeSet}, error::Error};
 
+use aes_gcm_siv::{aead::Aead, Aes256GcmSiv, KeyInit, Nonce};
 use chrono::{DateTime, Local};
+use log::info;
 
-use crate::util::{ByteSliceReader, ByteVecWriter};
+use crate::util::{security, ByteSliceReader, ByteVecWriter};
+
+#[derive(Debug)]
+pub struct Password {
+
+  ciphered: Vec<u8>,
+
+  plain: Option<String>,
+
+}
+
+impl Password {
+
+  pub fn plain(&self) -> Option<&String> {
+    self.plain.as_ref()
+  }
+
+  pub fn decipher(&mut self, secondary_password: &[u8], secondary_password_nonce: &[u8]) {
+    info!("Deciphering account password");
+
+    let cipher = match Aes256GcmSiv::new_from_slice(secondary_password) {
+      Ok(instance) => {
+        instance
+      }
+      Err(err) => {
+        panic!("Fail to create cipher when deciphering account password: {err:?}");
+      }
+    };
+
+    // a random generated fixed nonce
+    let nonce = Nonce::from_slice(secondary_password_nonce);
+
+    let plain_data = match cipher.decrypt(nonce, self.ciphered.as_slice()) {
+      Ok(plain_data) => {
+        plain_data
+      }
+      Err(err) => {
+        panic!("Fail to decipher account password: {err:?}")
+      }
+    };
+
+    self.plain = Some(
+      match String::from_utf8(plain_data) {
+        Ok(plain) => {
+          plain
+        }
+        Err(err) => {
+          panic!("Fail to parse deciphered account password as utf8 string: {err:?}")
+        }
+      }
+    )
+  }
+
+  pub fn cipher(plain: String, secondary_password: &[u8], secondary_password_nonce: &[u8]) -> Vec<u8> {
+    let cipher = match Aes256GcmSiv::new_from_slice(secondary_password) {
+      Ok(instance) => {
+        instance
+      }
+      Err(err) => {
+        panic!("Fail to create cipher when ciphering account password: {err:?}");
+      }
+    };
+
+    // a random generated fixed nonce
+    let nonce = Nonce::from_slice(secondary_password_nonce);
+
+    let ciphered_data = match cipher.encrypt(nonce, plain.as_bytes()) {
+      Ok(ciphered_data) => {
+        ciphered_data
+      }
+      Err(err) => {
+        panic!("Fail to cipher account password: {err:?}")
+      }
+    };
+
+    security::erase_string(plain);
+
+    ciphered_data
+  }
+
+}
 
 #[derive(Debug)]
 pub struct Account {
@@ -23,7 +105,7 @@ pub struct Account {
 
   login_name: Option<String>,
 
-  password: Option<String>,
+  password: Option<Password>,
 
   comment: Option<String>,
 
@@ -160,12 +242,26 @@ impl Account {
     self.update_modify_time();
   }
 
-  pub fn password(&self) -> Option<&String> {
+  pub fn password(&self) -> Option<&Password> {
     self.password.as_ref()
   }
 
-  pub fn set_password(&mut self, password: Option<String>) {
-    self.password = password;
+  pub fn password_mut(&mut self) -> Option<&mut Password> {
+    self.password.as_mut()
+  }
+
+  pub fn set_password(&mut self, plain: Option<String>, secondary_password: &[u8], secondary_password_nonce: &[u8]) {
+    self.password = match plain {
+      Some(plain) => {
+        Some(Password {
+          ciphered: Password::cipher(plain, secondary_password, secondary_password_nonce),
+          plain: None,
+        })
+      }
+      None => {
+        None
+      }
+    };
     self.update_modify_time();
   }
 
@@ -222,7 +318,17 @@ impl Account {
     let name = reader.read_string()?;
     let service = reader.read_option_string()?;
     let login_name = reader.read_option_string()?;
-    let password = reader.read_option_string()?;
+    let password = match reader.read_option_vec_u8()? {
+      Some(ciphered_password) => {
+        Some(Password {
+          ciphered: ciphered_password,
+          plain: None,
+        })
+      }
+      None => {
+        None
+      }
+    };
     let comment = reader.read_option_string()?;
     let custom_fields = reader.read_btreemap_string_string()?;
     let create_time = reader.read_datetime_local()?;
@@ -254,7 +360,7 @@ impl Account {
     writer.write_string(&self.name);
     writer.write_option_string(&self.service);
     writer.write_option_string(&self.login_name);
-    writer.write_option_string(&self.password);
+    writer.write_option_vec_u8(self.password.as_ref().map(|p| p.ciphered.as_slice()));
     writer.write_option_string(&self.comment);
     writer.write_btreemap_string_string(&self.custom_fields);
     writer.write_datetime_local(&self.create_time);

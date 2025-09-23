@@ -15,6 +15,13 @@ pub fn guarantee_account_from_database(id: usize, database: &Database) -> &Accou
   .as_ref().expect(&format!("Account (id={id}) has already been deleted"))
 }
 
+pub fn guarantee_account_from_database_mut(id: usize, database: &mut Database) -> &mut Account {
+  database
+  .accounts_mut()
+  .get_mut(id).expect(&format!("Account id {id} out of bounds"))
+  .as_mut().expect(&format!("Account (id={id}) has already been deleted"))
+}
+
 pub fn is_weak_password(password: &str) -> bool {
   if password.len() < 8 {
     true

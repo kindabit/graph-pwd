@@ -8,7 +8,9 @@ replace censored password in table view with font icons
 
 configurable countdown time
 
-double encrypt password, decrypt password only when necessary
+update secondary password periodically
+
+password generator
 
 # Medium Priority
 

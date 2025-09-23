@@ -4,15 +4,30 @@ use std::{error::Error, fs};
 use account::Account;
 use aes_gcm_siv::{aead::Aead, Aes256GcmSiv, KeyInit, Nonce};
 use log::debug;
+use sha2::{Digest, Sha256};
 
-use crate::{app_error::AppError, i18n::I18n, util::{number_util, ByteSliceReader, ByteVecWriter}};
+use crate::{app_error::AppError, i18n::I18n, util::{number_util, security, ByteSliceReader, ByteVecWriter}};
+
+fn sha256(s: &str) -> [u8; 32] {
+  let hashed_raw = Sha256::digest(s.as_bytes());
+  if hashed_raw.len() != 32 {
+    panic!("Length of hashed (sha256) data != 32");
+  }
+  let mut hashed = [0_u8; 32];
+  hashed.copy_from_slice(&hashed_raw);
+  hashed
+}
 
 #[derive(Debug)]
 pub struct Database {
 
   path: String,
 
-  main_password: String,
+  main_password: [u8; 32], // hashed
+
+  secondary_password: [u8; 32], // hashed
+
+  secondary_password_nonce: [u8; 12],
 
   nonce_counter: usize,
 
@@ -27,9 +42,29 @@ impl Database {
       panic!("Main password is empty");
     }
 
+    let hashed_main_password = sha256(&main_password);
+
+    let current_time = std::time::SystemTime::now()
+      .duration_since(std::time::UNIX_EPOCH)
+      .expect("Fail to get system time")
+      .as_secs();
+    let mut secondary_password = current_time.to_string();
+    secondary_password.push_str(&main_password);
+    let hashed_secondary_password = sha256(&secondary_password);
+
+    // erase the memory used by plain text main password, asap
+    security::erase_string(main_password);
+
+    let mut secondary_password_nonce = [0_u8; 12];
+    for i in 0_usize..12_usize {
+      secondary_password_nonce[i] = rand::random();
+    }
+
     Self {
       path,
-      main_password,
+      main_password: hashed_main_password,
+      secondary_password: hashed_secondary_password,
+      secondary_password_nonce,
       nonce_counter: 0,
       accounts: Vec::new(),
     }
@@ -37,6 +72,14 @@ impl Database {
 
   pub fn path(&self) -> &str {
     &self.path
+  }
+
+  pub fn secondary_password(&self) -> &[u8; 32] {
+    &self.secondary_password
+  }
+
+  pub fn secondary_password_nonce(&self) -> &[u8; 12] {
+    &self.secondary_password_nonce
   }
 
   pub fn accounts(&self) -> &Vec<Option<Account>> {
@@ -72,12 +115,13 @@ impl Database {
 
     let nonce = Nonce::from_slice(nonce_bytes);
 
-    let key_string = format!("{main_password:0>32}");
-    let key_slice = &key_string[0..32];
-    let cipher = match Aes256GcmSiv::new_from_slice(key_slice.as_bytes()) {
+    let hashed_main_password = sha256(&main_password);
+    let cipher = match Aes256GcmSiv::new_from_slice(&hashed_main_password) {
       Ok(instance) => instance,
       Err(err) => return Err(AppError::boxed(i18n.translate("database.fail_to_create_cipher_instance"), Some(Box::new(err)))),
     };
+
+    security::erase_string(main_password);
 
     let cipher_data = &data[12..data.len()];
 
@@ -89,6 +133,9 @@ impl Database {
     drop(data);
 
     let mut reader = ByteSliceReader::new(&plain_data);
+
+    let hashed_secondary_password = reader.read_u8_slice::<32>()?;
+    let secondary_password_nonce = reader.read_u8_slice::<12>()?;
 
     let num_accounts = reader.read_usize()?;
     let mut accounts = Vec::with_capacity(num_accounts);
@@ -106,7 +153,9 @@ impl Database {
 
     Ok(Self {
       path,
-      main_password,
+      main_password: hashed_main_password,
+      secondary_password: hashed_secondary_password,
+      secondary_password_nonce,
       nonce_counter: nonce_num,
       accounts,
     })
@@ -116,6 +165,9 @@ impl Database {
   pub fn save(&mut self, i18n: &I18n) -> Result<(), Box<dyn Error>> {
     let mut data = Vec::new();
     let mut writer = ByteVecWriter::new(&mut data);
+
+    writer.write_u8_slice(&self.secondary_password);
+    writer.write_u8_slice(&self.secondary_password_nonce);
 
     let len = self.accounts.len();
     writer.write_usize(len);
@@ -132,15 +184,12 @@ impl Database {
       }
     });
 
-    let nonce_num = self.nonce_counter + 1;
     self.nonce_counter += 1;
-    let nonce_string = number_util::usize_to_string_94_12(nonce_num);
+    let nonce_string = number_util::usize_to_string_94_12(self.nonce_counter);
     let nonce_bytes = nonce_string.as_bytes();
     let nonce = Nonce::from_slice(nonce_bytes);
 
-    let key_string = format!("{:0>32}", self.main_password);
-    let key_slice = &key_string[0..32];
-    let cipher = match Aes256GcmSiv::new_from_slice(key_slice.as_bytes()) {
+    let cipher = match Aes256GcmSiv::new_from_slice(&self.main_password) {
       Ok(instance) => instance,
       Err(err) => return Err(AppError::boxed(i18n.translate("database.fail_to_create_cipher_instance"), Some(Box::new(err)))),
     };

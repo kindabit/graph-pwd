@@ -4,6 +4,7 @@ pub mod account_util;
 pub mod number_util;
 pub mod tree_util;
 pub mod filter_util;
+pub mod security;
 
 use std::error::Error;
 

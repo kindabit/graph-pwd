@@ -24,11 +24,19 @@ pub enum Message {
 
   OnLoginNameCopyPress(String),
 
-  OnPasswordCopyPress(String),
+  OnPasswordCopyPress(usize),
 
 }
 
 impl AccountDetailDialog {
+
+  pub fn account_id(&self) -> usize {
+    self.account_id
+  }
+
+  pub fn censor_password(&self) -> bool {
+    self.censor_password
+  }
 
   pub fn new(account_id: usize) -> Self {
     Self {
@@ -48,7 +56,7 @@ impl AccountDetailDialog {
       Message::OnLoginNameCopyPress(_login_name) => {
         warn!("Event {MODULE_PATH}::Message::OnLoginNameCopyPress should be intercepted");
       }
-      Message::OnPasswordCopyPress(_password) => {
+      Message::OnPasswordCopyPress(_account_id) => {
         warn!("Event {MODULE_PATH}::Message::OnPasswordCopyPress should be intercepted");
       }
     }
@@ -226,7 +234,16 @@ impl AccountDetailDialog {
             font_icon::stop_circle_round_x6()
           }
           else {
-            Text::new(password.clone())
+            Text::new(
+              match password.plain() {
+                Some(plain) => {
+                  plain.clone()
+                }
+                None => {
+                  panic!("Account password should has already been deciphered here")
+                }
+              }
+            )
           }
         }
         else {
@@ -242,14 +259,7 @@ impl AccountDetailDialog {
           font_icon::content_copy_round(),
           style_variable
         )
-        .on_press(Message::OnPasswordCopyPress(
-          if let Some(password) = account.password() {
-            password.clone()
-          }
-          else {
-            String::new()
-          }
-        ))
+        .on_press(Message::OnPasswordCopyPress(account.id()))
       )
     )
     .push(

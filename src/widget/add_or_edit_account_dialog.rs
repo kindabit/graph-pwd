@@ -151,7 +151,16 @@ impl AddOrEditAccountDialog {
               name_error: None,
               service: old_account.service().map(String::from),
               login_name: old_account.login_name().map(String::from),
-              password: old_account.password().map(String::from),
+              password: old_account.password().map(|password| {
+                match password.plain() {
+                  Some(plain) => {
+                    plain.clone()
+                  }
+                  None => {
+                    panic!("Account password should have already been deciphered here")
+                  }
+                }
+              }),
               censor_password: true,
               comment: old_account.comment().map(String::from),
               custom_fields: {
