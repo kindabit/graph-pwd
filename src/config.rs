@@ -42,4 +42,8 @@ impl Config {
     self.clear_clipboard_countdown
   }
 
+  pub fn set_clear_clipboard_countdown(&mut self, clear_clipboard_countdown: i32) {
+    self.clear_clipboard_countdown = clear_clipboard_countdown;
+  }
+
 }

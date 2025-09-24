@@ -76,3 +76,7 @@ pub fn lock_round() -> Text<'static> {
 pub fn mouse_round() -> Text<'static> {
   Text::new("\u{e323}").font(Font::with_name("Material Icons Round"))
 }
+
+pub fn settings_round() -> Text<'static> {
+  Text::new("\u{e8b8}").font(Font::with_name("Material Icons Round"))
+}

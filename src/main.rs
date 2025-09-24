@@ -15,7 +15,7 @@ use std::{cell::RefCell, env, error::Error, process::{Command, ExitCode}, rc::Rc
 use config::Config;
 use i18n::I18n;
 use iced::{application::Boot, keyboard, widget::column, window::Position, Element, Font, Length, Subscription, Task};
-use log::{debug, info};
+use log::{debug, error, info};
 use logging::setup_logging;
 
 use crate::{database::{account::Account, Database}, i18n::Language, style_variable::StyleVariable, util::{account_util, modal, security}};
@@ -168,6 +168,7 @@ pub enum Message {
   AccountListDialogMessage(widget::AccountListDialogMessage),
   NewMainPasswordDialogMessage(widget::NewMainPasswordDialogMessage),
   MainPasswordDialogMessage(widget::MainPasswordDialogMessage),
+  SettingsDialogMessage(widget::SettingsDialogMessage),
   HelpDialogMessage(widget::HelpDialogMessage),
 
   NewDatabase,
@@ -223,6 +224,8 @@ struct RootWidget {
 
   main_password_dialog: Option<widget::MainPasswordDialog>,
 
+  settings_dialog: Option<widget::SettingsDialog>,
+
   help_dialog: Option<widget::HelpDialog>,
 
   header: widget::Header,
@@ -269,6 +272,8 @@ impl RootWidget {
       new_main_password_dialog: None,
 
       main_password_dialog: None,
+
+      settings_dialog: None,
 
       help_dialog: None,
 
@@ -317,6 +322,10 @@ impl RootWidget {
           widget::HeaderMessage::OnDebugPrintDatabaseButtonPress => {
             let db = &self.database;
             info!("{db:?}");
+            Task::none()
+          }
+          widget::HeaderMessage::OnSettingsButtonPress => {
+            self.settings_dialog = Some(widget::SettingsDialog::new(&self.config));
             Task::none()
           }
           widget::HeaderMessage::OnHelpButtonPress => {
@@ -995,6 +1004,36 @@ impl RootWidget {
         }
       }
 
+      Message::SettingsDialogMessage(msg) => {
+        let settings_dialog =
+          self.settings_dialog
+          .as_mut().expect("settings_dialog is None while receiving Message::SettingsDialogMessage");
+
+        match msg {
+          widget::SettingsDialogMessage::OnConfirmButtonPress => {
+            self.config.set_clear_clipboard_countdown(settings_dialog.clear_clipboard_countdown());
+            self.header.set_clear_clipboard_countdown_config(settings_dialog.clear_clipboard_countdown());
+            self.settings_dialog = None;
+            if let Err(err) = self.config.save() {
+              error!("Fail to save config file: {err:?}");
+              self.add_popup_dialog(
+                self.i18n.translate("popup_dialog.title.fail_to_save_config_file"),
+                self.i18n.translate("popup_dialog.content.fail_to_save_config_file"),
+                widget::PopupDialogType::Error,
+              );
+            }
+          }
+          widget::SettingsDialogMessage::OnCancelButtonPress => {
+            self.settings_dialog = None;
+          }
+          other => {
+            settings_dialog.update(other);
+          }
+        }
+
+        Task::none()
+      }
+
       Message::HelpDialogMessage(msg) => {
         match msg {
           widget::HelpDialogMessage::OnCloseButtonPress => {
@@ -1298,7 +1337,13 @@ impl RootWidget {
             iced::exit()
           },
           Err(err) => {
-            panic!("Fail to change language: {err:?}");
+            error!("Fail to save config file: {err:?}");
+            self.add_popup_dialog(
+              self.i18n.translate("popup_dialog.title.fail_to_save_config_file"),
+              self.i18n.translate("popup_dialog.content.fail_to_save_config_file"),
+              widget::PopupDialogType::Error,
+            );
+            Task::none()
           },
         }
       }
@@ -1381,6 +1426,13 @@ impl RootWidget {
       modal(
         content,
         main_password_dialog.view(&self.i18n).map(Message::MainPasswordDialogMessage),
+        Message::Noop,
+      )
+    }
+    else if let Some(settings_dialog) = &self.settings_dialog {
+      modal(
+        content,
+        settings_dialog.view(&self.i18n, &self.style_variable).map(Message::SettingsDialogMessage),
         Message::Noop,
       )
     }

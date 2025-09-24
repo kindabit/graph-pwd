@@ -1,9 +1,9 @@
 use std::sync::{Arc, Mutex};
 
-use iced::{border::Radius, clipboard, widget::{button, combo_box, row, text, toggler, Button, Column, ComboBox, ProgressBar, Space}, Alignment, Border, Color, Element, Length, Task};
+use iced::{border::Radius, clipboard, widget::{button, combo_box, row, text, toggler, Column, ComboBox, ProgressBar, Space}, Alignment, Border, Color, Element, Length, Task};
 use log::warn;
 
-use crate::{font_icon, i18n::{I18n, Language}, style_variable::StyleVariable};
+use crate::{font_icon, i18n::{I18n, Language}, style_variable::StyleVariable, widget::common};
 
 const MODULE_PATH: &str = module_path!();
 
@@ -29,6 +29,7 @@ pub enum Message {
   OnSaveButtonPress,
   OnSaveAsButtonPress,
   OnDebugPrintDatabaseButtonPress,
+  OnSettingsButtonPress,
   OnHelpButtonPress,
   OnLanguageSelected(Language),
 }
@@ -67,6 +68,9 @@ impl Header {
       }
       Message::OnDebugPrintDatabaseButtonPress => {
         warn!("Event {MODULE_PATH}::Message::OnDebugPrintDatabaseButtonPress should be intercepted");
+      }
+      Message::OnSettingsButtonPress => {
+        warn!("Event {MODULE_PATH}::Message::OnSettingsButtonPress should be intercepted");
       }
       Message::OnHelpButtonPress => {
         warn!("Event {MODULE_PATH}::Message::OnHelpButtonPress should be intercepted");
@@ -111,48 +115,22 @@ impl Header {
       ),
       Message::OnLanguageSelected
     )
-    .width(180);
+    .width({ StyleVariable::lock(style_variable).header_language_combobox_width });
 
     // let debug_print_database_button = button(text("DBG PRT DB"))
     //   .on_press(Message::OnDebugPrintDatabaseButtonPress);
 
-    let mut help_button = Button::new(
-      font_icon::help_outline_round().size({ StyleVariable::lock(style_variable).header_help_button_font_size })
+    let settings_button = common::create_icon_button(
+      font_icon::settings_round(),
+      style_variable
     )
-    .padding({ StyleVariable::lock(style_variable).header_help_button_padding })
-    .on_press(Message::OnHelpButtonPress);
+    .on_press(Message::OnSettingsButtonPress);
 
-    {
-      let style_variable = style_variable.clone();
-      help_button = help_button.style(move |_theme, status| {
-        match status {
-          button::Status::Active => {
-            iced::widget::button::Style {
-              background: Some({ StyleVariable::lock(&style_variable).header_help_button_background }),
-              text_color: Color::WHITE,
-              ..Default::default()
-            }
-          }
-          button::Status::Hovered => {
-            iced::widget::button::Style {
-              background: Some({ StyleVariable::lock(&style_variable).header_help_button_hovered_background }),
-              text_color: Color::WHITE,
-              ..Default::default()
-            }
-          }
-          button::Status::Pressed => {
-            iced::widget::button::Style {
-              background: Some({ StyleVariable::lock(&style_variable).header_help_button_pressed_background }),
-              text_color: Color::WHITE,
-              ..Default::default()
-            }
-          }
-          button::Status::Disabled => {
-            panic!("Help button is not expected to be disabled");
-          }
-        }
-      });
-    }
+    let help_button = common::create_icon_button(
+      font_icon::help_outline_round(),
+      style_variable
+    )
+    .on_press(Message::OnHelpButtonPress);
 
     let mut header_row = row![
       tree_mode_label,
@@ -163,6 +141,7 @@ impl Header {
       save_as_button,
       // debug_print_database_button,
       space,
+      settings_button,
       help_button,
       language_label,
       language_combobox,
@@ -238,6 +217,10 @@ impl Header {
     else {
       Task::none()
     }
+  }
+
+  pub fn set_clear_clipboard_countdown_config(&mut self, clear_clipboard_countdown_config: i32) {
+    self.clear_clipboard_countdown_config = clear_clipboard_countdown_config;
   }
 
 }

@@ -5,6 +5,7 @@ mod account_detail_dialog;
 mod account_list_dialog;
 mod new_main_password_dialog;
 mod main_password_dialog;
+mod settings_dialog;
 mod help_dialog;
 mod header;
 mod working_area;
@@ -34,6 +35,9 @@ pub use new_main_password_dialog::Message as NewMainPasswordDialogMessage;
 
 pub use main_password_dialog::MainPasswordDialog;
 pub use main_password_dialog::Message as MainPasswordDialogMessage;
+
+pub use settings_dialog::SettingsDialog;
+pub use settings_dialog::Message as SettingsDialogMessage;
 
 pub use help_dialog::HelpDialog;
 pub use help_dialog::Message as HelpDialogMessage;

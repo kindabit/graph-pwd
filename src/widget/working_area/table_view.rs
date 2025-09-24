@@ -1,6 +1,6 @@
 use std::{cell::RefCell, cmp::min, rc::Rc, sync::{Arc, Mutex}};
 
-use iced::{widget::{container, scrollable, text::Wrapping, Button, Checkbox, Column, Container, MouseArea, PickList, Row, Space, Text, TextInput}, Alignment, Element, Length};
+use iced::{widget::{container, scrollable, text::Wrapping, Button, Checkbox, Column, Container, PickList, Row, Space, Text, TextInput}, Alignment, Element, Length};
 use log::warn;
 
 use crate::{database::{account::Account, Database}, font_icon, i18n::I18n, style_variable::StyleVariable, util::{account_util, filter_util}, widget::common};
@@ -615,29 +615,6 @@ impl TableView {
     .height(Length::Shrink)
     .align_y(Alignment::Center)
     .clip(true)
-  }
-
-  fn body_link_cell_common(&self, s: impl Into<String>, style_variable: &Arc<Mutex<StyleVariable>>, width: Length, message: Message) -> MouseArea<Message> {
-    let style_variable = style_variable.clone();
-
-    MouseArea::new(
-      container(
-        Text::new(s.into())
-        .wrapping(Wrapping::None)
-        .style(move |_theme| {
-          use iced::widget::text::Style;
-          Style {
-            color: Some(StyleVariable::lock(&style_variable).working_area_link_color)
-          }
-        })
-      )
-      .height(Length::Shrink)
-      .width(width)
-      .align_y(Alignment::Center)
-      .clip(true)
-    )
-    .on_release(message)
-    .interaction(iced::mouse::Interaction::Pointer)
   }
 
   fn reset_page(&mut self) {
