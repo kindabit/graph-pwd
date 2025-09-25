@@ -4,13 +4,16 @@ references and parent relationship should carry information
 
 trash bin
 
-replace censored password in table view with font icons
-
-configurable countdown time
-
-update secondary password periodically
+update secondary password periodically (necessary?)
 
 password generator
+
+separate data access logic from other parts of the software
+- pagination
+- delete account
+- filter
+
+tag & category (tree)
 
 # Medium Priority
 
