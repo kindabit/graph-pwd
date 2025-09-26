@@ -15,6 +15,15 @@ separate data access logic from other parts of the software
 
 tag & category (tree)
 
+customable style variables
+
+different views:
+- table (implemented)
+- tree (implemented)
+- category
+- tag
+- graph (svg? or canvas?)
+
 # Medium Priority
 
 create backup before loading a database

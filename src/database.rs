@@ -1,4 +1,8 @@
 pub mod account;
+pub mod database;
+pub mod database_interface;
+pub mod append_buffer;
+pub mod read_slice;
 
 use std::{error::Error, fs};
 use account::Account;
